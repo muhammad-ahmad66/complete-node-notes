@@ -6,6 +6,9 @@
 2. [READING_AND_WRITING_FILES](#reading_and_writing_files)
    1. [In_Blocking-Synchronous_Way](#in_blocking-synchronous_way)
    2. [In_Non-Blocking-Asynchronous_Way](#in_non-blocking-asynchronous_way)
+3. [BLOCKING_AND_NON-BLOCKING](#blocking_and_non-blocking)
+4. [SERVERS](#servers)
+5. [ROUTING](#routing)
 
 ## What is NODE.JS??
 
@@ -128,87 +131,76 @@ fs.readFile('./txt/start.txt', 'utf-8', (err, data1) => {
 console.log('will read file!');
 ```
 
-**REMEMBER:** An Arrow function doesn't gets its own this keyword, It use the **this keyword** from the parent function. While a normal function always gets its own this keyword.
+**REMEMBER:** An Arrow function doesn't gets its own **this keyword**, It use the **this keyword** from the parent function. While a normal function always gets its own this keyword.
 
 ---
 
 ## BLOCKING_AND_NON-BLOCKING
 
-BLOCKING:
+### BLOCKING
+
 Synchronous simply means that each statements is processed one after another, line by line, Each line of code wait for the result of the previous statement. Each line blocks the execution of the rest of the code, that's why synchronous code is also blocking code.
 
-NON-BLOCKING\_\_ASYNCHRONOUS:
-In asynchronous code we upload heavy work to basically be worked on in the background. then once the work is done a callback function, that we register before is called to handle the result. During all that time the rest of the code can still be executing without being blocked.
+### NON-BLOCKING\_\_ASYNCHRONOUS
+
+In asynchronous code we upload heavy work to basically be worked on in the background. Then once the work is done a callback function, that we register before is called to handle the result. During all that time the rest of the code can still be executing without being blocked.
 
 So, we use asynchronous readFile function, which accepts a callback function. This will start reading the file in the background, then immediately nome on to the next statement.
 
-?Why do we do this:
-In Nodejs process, there's only a one single thread. A thread is a just like a set of instructions that's run in the computer's CPU.
+**Why do we do this?**  
+**In Nodejs process, there's only a one single thread.** A **thread** is a just like a set of instructions that's run in the computer's CPU.  
 Node js is single threaded, so all users that using our application are using only that same thread. It means one user blocks the code than all other users will have to wait fot the execution to finish.
 
-?Call backs doesn't automatically make the code asynchronous!!
+**REMEMBER:** Callbacks doesn't automatically make the code asynchronous.  
 It only works for some functions in the Node API, such as readFile function and many many more....
 
-?CALLBACK HELL: lot of nested callbacks. We can avoid this by using ES6 promises OR ES8 async/await.
+**CALLBACK HELL:** lot of nested callbacks. We can avoid this by using ES6 promises OR ES8 async/await.
 
-\*/
+---
 
-// !=====================! //
-// _Lecture#010
-/_
+## SERVERS
 
-// **\*\***\*\*\*\***\*\***\***\*\***\*\*\*\***\*\***
-// **\*\***\*\***\*\***\*\*\*\***\*\***\*\***\*\***
-// \*SERVERS #029F70
-
-// !=====================! //
-// \* Lecture#011
-
-/\*
-\*CREATING A SIMPLE WEB SERVER
+**CREATING A SIMPLE WEB SERVER**  
 We will build a simple web server that capable of accepting requests and sending back a responses.
 
-First step is to include yet another module, this one is called http
-const http = require('http'); That's is one that gives us networking capabilities, such as building an http server.
+First step is to include yet another module, this one is called **http**  
+**const http = require('http');** That's is one that gives us networking capabilities, such as building an http server.
 
-?In order to build own server, we have to do two things. First, we create a server and second, we start the server, so that we can listen to incoming requests.
+In order to build own server, we have to do two things. First, we **create a server** and second, we **start the server,** so that we can listen to incoming requests.
 
-http.createServer()
-createServer() will accept a callback function, which will be fired off each time a new request is hits our server. And this callback function get access to two important and fundamental variables. It's the request variable, and a response variable.
-\*/
-// const http = require('http');
+**http.createServer()**  
+**createServer()** will accept a callback function, which will be fired off each time a new request is hits our server. And this callback function get access to two important and fundamental variables. It's the request variable, and a response variable.
 
-// _1) CREATING A SERVER
-/_
-http.createServer((req, res) => {
-res.end('Hello from the server!');
-}); \*/ // each time a new request is hits to our server, this callback function will get called. This callback function will have access to the request object which holds all kinds of stuff like request url, etc. On the other hand response object gives us a lot of tools basically for dealing with response. res.end() is very simple way fo sending back a response.
+1. **CREATING A SERVER**
 
-// _2) LISTENING INCOMING REQUEST
-/_
-In order to listen an incoming request first we have to save the result of createServer() in a new variable. We stored that result in a variable named server.
-We use that server and on that we call listen(). and listen() accept a couple of parameters the first one is port, usually the port that we use in node (8000), (300), (80), etc. A port is basically a sub address on a certain host. and the second one is host, if we don't specify host, and then will default to a local host, but we can also specify localhost explicitly. localhost usually has this address as a default('127.0.0.1'). this is a standard IP address of localhost. Localhost simply means the current computer. Third as an optional argument we can pass a callback function, which will be run as soon as the server starts listening.
+   ```JS
+   const http = require('http');
+   http.createServer((req, res) => {
+   res.end('Hello from the server!');
+   });
+   ```
 
-\*/
+   Each time a new request is hits to our server, this callback function⤴ will get called. **This callback function will have access to the request object which holds all kinds of stuff like request url**, etc. On the other hand **response object gives us a lot of tools basically for dealing with response**. **res.end()** is very simple way fo sending back a response.
 
-/\*
-const server = http.createServer((req, res) => {
-// console.log(res);
-res.end('Hello from the server!');
-});
+2. **LISTENING INCOMING REQUEST**
 
-server.listen('8000', '127.0.0.1', () => {
-console.log('listening to request on port 8000');
-});
+   In order to listen an incoming request first we have to save the result of createServer() in a new variable. We stored that result in a variable named server.⤵  
+   We use that server and on that we **call listen() method**. and **listen()** accept a couple of parameters the first one is **port**, usually the port that we use in node (8000), (300), (80), etc. **A port is basically a sub address on a certain host.** and the second one is **host**, if we don't specify host, and then will default to a local host, but we can also specify localhost explicitly. localhost usually has this address as a default('127.0.0.1'). This is a standard IP address of **localhost**. Localhost simply means the current computer. **Third as an optional argument we can pass a callback function**, which will be run as soon as the server starts listening.
 
-\*/
+   ```js
+   const server = http.createServer((req, res) => {
+     // console.log(res);
+     res.end('Hello from the server!');
+   });
 
-// \***\*\*\*\*\*\*\***\*\*\*\*\***\*\*\*\*\*\*\***
-// \***\*\*\*\*\*\*\***\*\*\*\*\***\*\*\*\*\*\*\***
-// \*ROUTING #029F70
+   server.listen('8000', '127.0.0.1', () => {
+     console.log('listening to request on port 8000');
+   });
+   ```
 
-// !=====================! //
-// \* Lecture#012
+---
+
+## ROUTING
 
 /\*
 \*ROUTING: Routing basically means implementing different actions for a different URLs.
