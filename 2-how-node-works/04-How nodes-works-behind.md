@@ -8,6 +8,7 @@
 4. [Events_and_Event-Driven_Architecture](#events_and_event-driven_architecture)
 5. [STREAMS](#streams)
 6. [How_Requiring_Modules_Really_Works](#how_requiring_modules_really_works)
+7. [Some_Missing_Stuff](#some_missing_stuff)
 
 ## Node_V8_Libuv_And_C++
 
@@ -675,3 +676,46 @@ Log this beautiful texts...!
 Log this beautiful texts...!
 
 hello from the module is only one and other text are three times as we called. this is because of caching, so, technically this module is only loaded once. and Log this beautiful texts...! is store somewhere in the node processes cache, so 2nd and 3rd came from cache.
+
+---
+
+## Some_Missing_Stuff
+
+The Node.js Architecture Behind the Scene:
+
+Node not just relay on these two things but also on http-parser for parsing http, c-ares or something like that for some DNS request stuff, OpenSSL for cryptography and zlib for compression.
+
+### PROCESSES, THREADS, THREAD POOLS
+
+**PROCESS:** process is a just a program in execution. In node we actually have access to a process variable. In that process nodeJs runs in a so called single thread.  
+**THREAD:** A thread is basically a sequence of instructions.
+
+NodeJS runs in just one thread, which makes it easy to block node applications. If we run our node application it'll run in a single thread, no matter if we have 10 users or 10 million users accessing application at the same time. So we need to be very careful about not blocking that thread.
+
+### EVENT LOOP IS THE HEART OF THE NODE ARCHITECTURE [In_Detail]
+
+Remember Event Loop runs in a single thread.  
+The event loop is where all the application code that is inside callback functions are executed. so, basically all codes that are not top level code will run in the event loop. Some parts might get offload to the thread pool.
+
+**1st Phase -Expired timer callbacks:**  
+It takes care of callbacks of expired timers, for example from the setTimeout() function, so, it there are callback function from the timers that just expired, these are the first ones to be processed by the event loop. If a timer expires later during the time when one of the other phases are being processed, then the callback of that timer will only be called as soon as event loop comes back to this first phase. It works like this in all four phases, callbacks in each queue are processed one by one until there are no ones left in the queue, and only then, the event loop will enter the next phase.
+
+**2nd Phase -I/O polling and execution of IO callbacks:**  
+Polling means looking for new IO events that are ready to processed and putting them into the callback queue. And remember that in the context of a node application, IO means stuff like networking and file access, and so, in this phase where probably 99% of our code get executed, simply because in a typical node app the bulk of what we need to do is related to networking and file accessing.
+
+**3rd Phase -setImmediate callbacks:**  
+setImmediate is a special kind of timer that we can use if we want to process callbacks immediately after the IO polling and execution phase, which can be important in some advanced use cases.
+
+**4th Phase -Close callbacks:**  
+In this phase all close events are processed, for example for when a web-server or a webSocket shutdown.
+
+Besides there 4 callback queues there are actually two other queues. 1) The nextTick() queue and 2) The microtask queue, which is mainly for resolved promises.  
+If there is any callback in one of these two queues to be processed, they will be executed right after the current phase, Instead of waiting for entire loop to finish.  
+Basically process.nextTick() is a function that we can use when really really need execute a certain callback right after the current event loop phase. it's a bit similar to the setImmediate, with difference that setImmediate only runs after the IO polling phase.
+
+Tick in event loop: Tick is basically just a one cycle in this loop.
+
+Now it's time to decide whether the loop should continue to the next tick or should exit?  
+For this node simply checks whether there are any timers or IO tasks are still running in the background,if there aren't any, then it will exit the application. for example when we're listening for incoming http request, we are basically running an IO task and that's why teh event loop, therefor node keep running and keep listening for new http requests coming in. Also when we reading and writing files in background that's also an IO task.
+
+An event loop is what that makes asynchronous programming possible in Node.js. Also remember that we need the event loop, because in Node.js everything works in one single thread.
