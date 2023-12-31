@@ -5,6 +5,8 @@
 1. [What_Is_Express](#what_is_express)
 2. [Basic_Express_And_Routing](#basic_express_and_routing)
 3. [APIs_And_RESTful_API_Design](#apis_and_restful_api_design)
+4. [STARTING_OUR_API__HANDLING_GET_REQUESTS](#starting_our_api__handling_get_requests)
+5. [RESPONDING_TO_URL_PARAMETERS](#responding_to_url_parameters)
 
 ## What_Is_Express
 
@@ -65,119 +67,161 @@ app.listen(port, () => {
 ## APIs_And_RESTful_API_Design
 
 ### APIs
+
 **What is an API?**  
 API [Application Programming Interface]; A piece of software that can be used by another piece of software, in order to allow applications to talk to each other.
 
 Mainly in API there are two piece they are talking to each other. (sends data to a client whenever request comes in). This kind of API that are most widely used. But in fact, APIs aren't only used to send data, and aren't always related to web development or javascript.  
 The application in API can actually mean many different things as long as the piece of software is relatively stand alone. for example Node file system and http modules, we can say they are small pieces of software and we can use them, interact with them by using their API. When we use the readFile function from the FS module, we are actually using fs API. That's why we sometimes hear the term node APIs. Or when we do DOM manipulation in the browser, we are not really using the javascript language itself, but rather, the DOM API that the browser give access to us. Another example let's say we create a class in any programming language like C++ and then add some public methods or properties to it, These methods will be the API of each object created from that class because we're giving other pieces of software the possibility of interacting with our initial piece of software. So, as a **conclude** API has a broader meaning than just building web APIs. Anyway web API is important for us in context of node.
 
-### Let's take a look at the REST architecture.
-REST stands for Representational States Transfer, is basically a way to building web APIs in a logical way, making them easy to consume. because remember, we build an API for ourselves or for others to consume, So, we want to make the process of actually using the API as smooth as possible for the users.
-RESTfull means APIs following the REST Architecture.
-? Now to build RESTful APIs, we just need to follow a couple fo principles.
-1- We need to separate our API into logical resources.
-2- These resources should then be exposed, which means to be made available using structured, resource-based URLs.
-3- Use HTTP methods: To perform different actions on data like reading or creating or deleting data, the API should use the right http methods and not the url
-4- Send data as JSON: The data that we actually send back to the client or that we received from the client should usually use the JSON data format,
-5- Be Stateless: They must be stateless.
+### Let's take a look at the REST architecture
 
-? Explanation One by One: -using Natours API as an example
-? Resources:
+**REST** stands for **Representational States Transfer**, is basically a way to building web APIs in a logical way, making them easy to consume. Because remember, we build an API for ourselves or for others to consume, So, we want to make the process of actually using the API as smooth as possible for the users.
+
+**RESTfull** means APIs following the REST Architecture.  
+
+**Now to build RESTful APIs, we just need to follow a couple fo principles.**
+
+1. We need to **separate our API into logical resources**.
+2. These **resources should then be exposed**, which means to be made available using structured, resource.based URLs.
+3. **Use HTTP methods:** To perform different actions on data like reading or creating or deleting data, the API should use the right http methods and not the url
+4. **Send data as JSON:** The data that we actually send back to the client or that we received from the client should usually use the JSON data format,
+5. **Be Stateless:** They must be stateless.
+
+**Explanation One by One:** -using Natours API as an example
+
+#### Resources
+
 All the data that we wanna share in the API should be divided into logical resources. In the context of REST, Resource is an object or a representation of something, which has some data associated to it. for example tours or users or reviews. so, basically any information that can be named can be resource.
-?Expose:
-We need to expose, which means to make available the data using some structured urls that the client can send a request to. for example https://www.natours.com/addNewTour this entire address is called url, in this url /addNewTour is called an API endpoint. API will have many different endpoints. like /updateTour, /deleteTour, /getTourByUser, etc... Each perform different actions or send different data to the client.
-Now there is something very wrong with these endpoints, because they don't follow the third rule which says that we should only use http methods in order to perform actions on data. So, endpoints should only contain our resources, not the actions that can be performed on them because they will quickly become a nightmare(horror/ burden/ curse) to maintain.
-? So, How should be use these http methods in practice?
 
-? GET HTTP METHOD
-this /getTour endpoint is to get data about a tour. so we should simply name the endpoint /tours and send the data whenever a get request is made to this endpoint. In other word when a client uses a get http method to access the endpoint. with this we only have resources in the endpoint.
-It's common practice that we always use resource in plural. The convention is that when calling /tours endpoint we get back all the tours that are in database.
-If we only want the tour with any id, we add that after another slash. like this /tour/7
+#### Expose
+
+We need to expose, which means to make available the data using some structured urls that the client can send a request to. For example <https://www.natours.com/addNewTour> this entire address is called url, in this url /addNewTour is called an API endpoint. API will have many different endpoints. like /updateTour, /deleteTour, /getTourByUser, etc... Each perform different actions or send different data to the client.  
+Now there is something very wrong with these endpoints, because they don't follow the third rule which says that we should only use http methods in order to perform actions on data. So, endpoints should only contain our resources, not the actions that can be performed on them because they will quickly become a nightmare(horror/ burden/ curse) to maintain.  
+
+**So, How should be use these http methods in practice?**
+
+##### GET HTTP METHOD
+
+this /getTour endpoint is to get data about a tour. so we should simply name the endpoint /tours and send the data whenever a get request is made to this endpoint. In other word when a client uses a get http method to access the endpoint. with this we only have resources in the endpoint.  
+It's common practice that we always use resource in plural. The convention is that when calling /tours endpoint we get back all the tours that are in database.  
+If we only want the tour with any id, we add that after another slash. like this /tour/7  
 This is about get http method, it's use to perform the read operation on data.
 
-? POST HTTP METHOD
-Next, If client wants to create a new resource in the database, in this example a new tour, the POST method should be used. post method should be use to send data to the server. In this case usually no ID will be sent. A server will automatically figure out the id for new resource.
-? The endpoint name /tours here in post method is exact same as before in get method? both are /tours. The only difference is http method that is used for the request. If the /tours endpoint is accessed with get, we send data to the client, and if the same endpoint is accessed with post method we expect data to come in with a request, so that we can then create a new resource on the server side. So, that's really the beauty of only using http methods rather than messing with verbs in endpoint names. Again if we use resources with verbs like /getTour, /addNewTour, than it would really become unmanageable very quick.
+##### POST HTTP METHOD
 
-? PUT & PATCH HTTP METHODS
-Next, There should also be the ability to update resources. for that either a PUT or a PATCH request should be made to the endpoint. The difference between them is that with PUT the client is supposed to send the entire updated object, while with PATCH it's supposed to send only the part of the object that has been changed. But both of them have the ability to send data to the server, bit like POST but with a different intent. So, again, POST is to create a new resource while put or patch are used to update existing resource.
+Next, If client wants to create a new resource in the database, in this example a new tour, the POST method should be used. post method should be use to send data to the server. In this case usually no ID will be sent. A server will automatically figure out the id for new resource.  
+**The endpoint name /tours here in post method is exact same as before in get method?** both are /tours. The only difference is http method that is used for the request. If the /tours endpoint is accessed with get, we send data to the client, and if the same endpoint is accessed with post method we expect data to come in with a request, so that we can then create a new resource on the server side. So, that's really the beauty of only using http methods rather than messing with verbs in endpoint names. Again if we use resources with verbs like /getTour, /addNewTour, than it would really become unmanageable very quick.
 
-? DELETE HTTP METHOD
-Finally there is the DELETE http method. Again the ID or some other unique identifier of the resource to be deleted should be part of the url. Usually in order to actually be able to perform this kind of request the client must be authenticated.
-These are the five http methods that we can and should respond to when building our RESTful APIs. So the client can perform the four basic CRUD operations.
-!POST METHOD ->         CREATE
-!GET METHOD ->          READ
-!PUT/PATCH METHODS ->   UPDATE
-!DELETE METHOD ->       DELETE
-? There might be actions that are not CRUD, for example a login, a search operation, but we still can create endpoints for them. for example /login or /search
-Remember that we had two other crazy endpoint names(/getToursByUser & /deleteToursByUser), which involved two resources(tours, user) at the same time, and that's no problem at all with REST. /getToursByUser can simply be translated to: /getToursByUser -> /users/3/tours and /deleteToursByUser -> /users/3/tours/9 (user number 3).. So there are tons of possibilities of combining resources like this.
-?So, this is how we make use of http methods to build user-friendly and nicely structured urls. The data that the client actually receives, or the server receives from the client, usually we use json data format.
+##### PUT & PATCH HTTP METHODS
 
-? What json actually is? and how to format our API responses?
-JSON is a very lightweight data interchange format which is heavily used by web APIs coded in any programming language. And it's so widely used today, because it's really easy for both humans and computers to understand and write json. json looks bit like a regular javascript object with all key value pairs, but with some differences, most important one is that all the keys have to be strings. it's also very typical for the values to be strings as well, but they can be other things like numbers, bool, other objects or arrays.
-let's say this is a data(see pdf slide) that we have in our data for a get request to this url https://www.natours.com/tours/5 (the tour with id of 5). We could send back like this to the client but We usually some simple response formatting before sending data, there are couple of standards for this. we gonna use very simple one. called Jsend. we simply create a new object, then add a status message to it in order to inform the client whether the request was a success, fair or error, and then we put our original data into a new oject called Data. Wrapping the data into an additional object is called Enveloping( see pdf file ) and it's common practice to mitigate/reduce some security issues and other problems. And also there are some other standards for response-formatting that we can look. like json:api or the Odata Json protocol.
+Next, There should also be the ability to update resources. for that either a PUT or a PATCH request should be made to the endpoint. The difference between them is that with PUT the client is supposed to send the entire updated object, while with PATCH it's supposed to send only the part of the object that has been changed. But both of them have the ability to send data to the server, bit like POST but with a different intent. So, again, **POST is to create a new resource while put or patch are used to update existing resource**.
 
-Finally a RESTfull API should always be stateless. Stateless in RESTfull API is all state is handled on the client, not on the server, This means that each request must contain all the information necessary to process a certain request. The server should not have to remember previous request. and state simply refer to a piece of data in the application that might change over time. for example whether a certain user is logged in or on a page with a list with several pages what the current page is, Now the fact that the state should be handled on the client means that each request must contain all the information that is necessary to process a certain request on the server. So the server should never ever have to remember the previous request in order to process the current request.
-Let's take the list with several pages as an example. and let's say that we are currently on page five(currentPage = 5) and want to move forward to page six. So we could have simple endpoint called /tours/nextPage and submit a request to it, But the server would then have to figure out what the current page is and based on that send the next page to the client. In other words the server would have to remember the previous request. It would have to handle the state server side and that is exactly what we want to avoid in RESTful APIs. Instead in this case we should create a /tours/page endpoint and paste a number six to it in order to request page number six /tours/pae/6 . This way we would then state on the client because on a client, we would already know that we're on page five. and so all we had to do is to just add one and then request page number six. So the server doesn't have to remember anything in this case, All it has to do is to send back data for page number six as we requested. and by the way, statelessness and statefulness(which is the opposite) are very important concepts in computer science and application design in general.
-! See Statefulness VS statelessness
+##### DELETE HTTP METHOD
 
-*/
+Finally there is the DELETE http method. Again the ID or some other unique identifier of the resource to be deleted should be part of the url. Usually in order to actually be able to perform this kind of request the client must be authenticated.  
 
-// * Lecture 052
-// * STARTING OUR API_HANDLING GET REQUESTS
+**These are the five http methods that we can and should respond to when building our RESTful APIs.** So the client can perform the four basic **CRUD** operations.  
+POST METHOD         ->   **C**REATE  
+GET METHOD          ->   **R**EAD  
+PUT/PATCH METHODS   ->   **U**PDATE  
+DELETE METHOD       ->   **D**ELETE  
 
-// * lecture 053
-// * HANDLING POST REQUEST
-// const fs = require('fs');
-// const express = require('express');
-// const app = express();
+There might be actions that are not CRUD, for example a login, a search operation, but we still can create endpoints for them. for example /login or /search  
 
-// adding Middleware:
-// app.use(express.json());
+**Remember that** we had two other crazy endpoint names(/getToursByUser & /deleteToursByUser), which involved two resources(tours, user) at the same time, and that's no problem at all with REST. /getToursByUser can simply be translated to: /getToursByUser -> /users/3/tours and /deleteToursByUser -> /users/3/tours/9 (user number 3).. So there are tons of possibilities of combining resources like this.  
+So, this is how we make use of http methods to build user-friendly and nicely structured urls. The data that the client actually receives, or the server receives from the client, usually we use **JSON data format**.
 
-// In top-level we don't really need of async version. Remember __dirname is the folder where current script is located. Also parse the result with JSON.parse() it will convert json to javascript array of objects.
-// const tours = JSON.parse(
-//   fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
-// );
+---
 
-// app.get('/api/v1/tours', (req, res) => {
-//  res.status(200).json({
-// we are using Jsend JSON formatting standard.
-//    status: 'success', // status can be 'success', 'fail'(error at client side) or 'error'(error at server side)
-//    results: tours.length, // Number of results. we are sending. this is not primary thing to do.
-//    data: {
-// this data is so-called envelope for our data. this data will contain actual data/response
-// tours: tours, // in ES6 we do not need to specify the key and the value if they have the same name, we could just write tours. here tours before colon is resource or endpoint tours and after colon is tours data that came from the file.
-//     tours,
-//    },
-//  });
-//}); // we usually called this function rout handler. Here we put what to do when someone hits this route. Here we just send back all the tours to that resource(/tours) [\dev-data\data\tours-simple.json in this file we have sample of tours json. This is a data that we are gonna be sending to the client.] Now before we sending data we actually need to first read it. We don't do it inside the route handler, but we do it before get method. We can do it on top-level because top-level code is only executed once.
+#### What JSON actually is? and how to format our API responses?
 
-// ? Lets now implement a route handler for post request. So we can actually add a new Tour to our data set.
+**JSON** is a very lightweight data interchange format which is heavily used by web APIs coded in any programming language. And it's so widely used today, because it's really easy for both humans and computers to understand and write JSON. JSON looks bit like a regular javascript object with all key value pairs, but with some differences, most important one is that all the keys have to be strings. It's also very typical for the values to be strings as well, but they can be other things like numbers, bool, other objects or arrays.  
 
-// http POST request method:
-/*
+Let's say this is a data(see theory-lecture.pdf) that we have in our data for a get request to this url <https://www.natours.com/tours/5> (the tour with id of 5). We could send back like this to the client but We usually some simple response formatting before sending data, there are couple of standards for this. We gonna use very simple one. called **Jsend**. we simply create a new object, then add a status message to it in order to inform the client whether the request was a success, fair or error, and then we put our original data into a new object called Data. **Wrapping the data into an additional object is called Enveloping**( see pdf file ) and it's common practice to mitigate/reduce some security issues and other problems. And also there are some other standards for response-formatting that we can look. like JSON:api or the Odata JSON protocol.
 
-- Remember by the post request we can send data from the client to the server.
-- This data is then ideally on available on the request. The request object is what that holds all the data, all the information about the request was done. If that request contains some data that was sent, then that data should be on the request. Express does not put that body data on the request, and in order to have that data available, we have to use something called middleware. So use middleware at the top of the code. we need to do: app.use(express.json()); here this express.json is a middleware. And middleware is basically just a function that can modify the request data. It's called middleware because it's between(middle of) request and response. In this example it's simply that the data from the body is added to it -it added to request object-. we'll talk about middleware later.
-- body is the property that's available on the request, because we used that middleware. and we also need to send back a response, We always need to send back something in order to finish the so-called request/response cycle.
-- then we added some json data to the body->raw->json on post method at Postman application.
+**Finally a RESTfull API should always be stateless.** Stateless in RESTfull API is all state is handled on the client, not on the server, This means that each request must contain all the information necessary to process a certain request. The server should not have to remember previous request. And state simply refer to a piece of data in the application that might change over time. For example whether a certain user is logged in or on a page with a list with several pages what the current page is, Now the fact that the state should be handled on the client means that each request must contain all the information that is necessary to process a certain request on the server. So the server should never ever have to remember the previous request in order to process the current request.
 
+Let's take the list with several pages as an example. and let's say that we are currently on page five(currentPage = 5) and want to move forward to page six. So we could have simple endpoint called /tours/nextPage and submit a request to it, But the server would then have to figure out what the current page is and based on that send the next page to the client. In other words the server would have to remember the previous request. It would have to handle the state server side and that is exactly what we want to avoid in RESTful APIs.  
+**Instead** in this case we should create a /tours/page endpoint and paste a number six to it in order to request page number six /tours/page/6 . This way we would then state on the client because on a client, we would already know that we're on page five. and so all we had to do is to just add one and then request page number six. So the server doesn't have to remember anything in this case, All it has to do is to send back data for page number six as we requested. and by the way, **statelessness** and **statefulness**(which is the opposite) are very important concepts in computer science and application design in general.  
+**See Statefulness VS statelessness**
 
-*/
-/*
+---
+
+## STARTING_OUR_API__HANDLING_GET_REQUESTS
+
+### HANDLING GET REQUEST
+
+**Always read Comments from Codes:**
+
+```js
+
+const fs = require('fs');
+const express = require('express');
+const app = express();
+
+// Adding Middleware:
+app.use(express.json());
+
+const tours = JSON.parse(
+  fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
+);
+
+```
+
+In top-level we don't really need of async version.  
+Remember **__dirname** is the folder where current script is located.  
+Also parse the result with JSON.parse() It will convert json to javascript array of objects.  
+
+```js
+
+app.get('/api/v1/tours', (req, res) => {
+ res.status(200).json({
+  // We are using Jsend JSON formatting standard.
+   status: 'success', 
+   // status can be 'success', 'fail'(error at client side) or 'error'(error at server side)
+   results: tours.length, // Number of results. we are sending. this is not primary thing to do.
+   data: {
+  // this data is so-called envelope for our data. this data will contain actual data/response  
+  // tours: tours, // in ES6 we do not need to specify the key and the value if they have the same name, we could just write tours. 
+  // Here tours before colon is resource or endpoint tours and after colon is tours data that came from the file.
+    tours,
+   },
+ });
+}); 
+
+```
+
+We usually called this function⤴ **rout handler**. Here we put what to do when someone hits this route. Here we just send back all the tours to that resource(/tours) [\dev-data\data\tours-simple.json in this file we have sample of tours json. This is a data that we are gonna be sending to the client]. Now before we sending data we actually need to first read it⤴. We don't do it inside the route handler, but we do it before get method. We can do it on top-level because top-level code is only executed once.
+
+### HANDLING POST REQUEST
+
+Lets now implement a route handler for post request. So we can actually add a new Tour to our data set.
+
+Remember by the post request we can send data from the client to the server.  
+**This data is then ideally on available on the request.** The **request object** is what that holds all the data, all the information about the request was done. If that request contains some data that was sent, then that data should be on the request. Express does not put that body data on the request, and in order to have that data available, we have to use something called **Middleware.**  
+So use **Middleware** at the top of the code⤴. we need to do: _app.use(express.json());_ Here this express.json is a middleware. **And Middleware is basically just a function that can modify the request data.** It's called middleware because it's between(middle of) request and response.  
+In this example it's simply that the data from the body is added to it -it added to request object-. we'll talk about middleware later.  
+body is the property that's available on the request, because we used that middleware⤴. and we also need to send back a response, We always need to send back something in order to finish the so-called **Request/Response cycle.**  
+_Then we added some json data to the **body->raw->json** on POST method at Postman application._
+
+```JS
+
 app.post('/api/v1/tours', (req, res) => {
   // console.log(req.body);
   const newId = tours[tours.length - 1].id + 1;
   const newTour = Object.assign({ id: newId }, req.body);
   //? const newTour = {id : newId, ...req.body};
-  Object.assign() is used to merge two objects into one. it will merge both both objects that we specify as a parameter, and remember is will always mutate the first one. we can use spread operator as well: const merged = { ...obj1, ...obj2 };
+  // Object.assign() is used to merge two objects into one. 
+  // It will merge both both objects that we specify as a parameter. 
+  // And remember it will always mutate the first one. we can use spread operator as well: const merged = { ...obj1, ...obj2 };
 
   tours.push(newTour); // here tours is, which we read from file, and remember it's an array of objects.
 
   fs.writeFile(
     `${__dirname}/dev-data/data/tours-simple.json`,
-    JSON.stringify(tours), // stringify(), is a JavaScript method used for converting a JS object or value into a JSON string.
+    JSON.stringify(tours), 
+    // stringify(), is a JavaScript method used for converting a JS object or value into a JSON string.
     (err) => {
       res.status(201).json({
         status: 'success',
@@ -190,27 +234,27 @@ app.post('/api/v1/tours', (req, res) => {
 
   // res.send('Done!');
 });
-*/
-/*
+
+```
 
 - We have post methods, Now we want to persist(add) that data into the tours-simple.json file.⬆
-- first thing we need to do is figure out the id of the new object. In database When we create a new object we never specify the id of the object. the database usually takes care of that -A new object usually automatically gets it's new id. In this case we don't have any database and so we gonna do is simply take the id of the last object and then add +1 to that. ⬆
-- then we create a new tour and that tour will basically be the body that we send plus the newId that we just created. So we can use Object.assign, which basically allows us to create a new object by merging two existing objects together. 
+- First thing we need to do is figure out the id of the new object. In database When we create a new object we never specify the id of the object. the database usually takes care of that -A new object usually automatically gets it's new id. In this case we don't have any database and so we gonna do is simply take the id of the last object and then add +1 to that. ⬆
+- Then we create a new tour and that tour will basically be the body that we send plus the newId that we just created. So we can use Object.assign, which basically allows us to create a new object by merging two existing objects together.
 - Now we want to push this tour into the tours array.
 - After that we have to persist that into the file. Here our newTours is an object and in the file there is a json file type so we have to stringify the object.  JSON.stringify(tours)
-*/
 
-// const port = 3000;
-// app.listen(port, () => {
-//   console.log(`App running on port ${port}...`);
-// });
+```js
+const port = 3000;
+app.listen(port, () => {
+  console.log(`App running on port ${port}...`);
+});
+```
 
-/*
+---
 
-* lecture 054
-* RESPONDING TO URL PARAMETERS:
+## RESPONDING_TO_URL_PARAMETERS
 
-* An easy way to defining parameters right in the url, how to then read these parameters and also how to respond to them.
+An easy way to defining parameters right in the url, how to then read these parameters and also how to respond to them.
 
 ! code ⬇
 
