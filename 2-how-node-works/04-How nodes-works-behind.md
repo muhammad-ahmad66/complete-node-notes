@@ -683,7 +683,7 @@ hello from the module is only one and other text are three times as we called. t
 
 The Node.js Architecture Behind the Scene:
 
-Node not just relay on these two things but also on http-parser for parsing http, c-ares or something like that for some DNS request stuff, OpenSSL for cryptography and zlib for compression.
+Node not just relay on these two things(V8-Engine & libuv) but also on http-parser for parsing http, c-ares or something like that for some DNS request stuff, OpenSSL for cryptography and zlib for compression.
 
 ### PROCESSES, THREADS, THREAD POOLS
 
