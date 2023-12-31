@@ -6,7 +6,13 @@
 2. [Basic_Express_And_Routing](#basic_express_and_routing)
 3. [APIs_And_RESTful_API_Design](#apis_and_restful_api_design)
 4. [STARTING_OUR_API__HANDLING_GET_REQUESTS](#starting_our_api__handling_get_requests)
+    1. [HANDLING_GET_REQUEST](#handling_get_request)
+    2. [HANDLING_POST_REQUEST](#handling_post_request)
 5. [RESPONDING_TO_URL_PARAMETERS](#responding_to_url_parameters)
+6. [HANDLING_PATCH_REQUEST](#handling_patch_request)
+7. [Handling_DELETE_Requests](#handling_delete_requests)
+8. [Refactoring_Our_Routes](#refactoring_our_routes)
+9. [Middleware_And_The_Request-Response_Cycle](#middleware_and_the_request-response_cycle)
 
 ## What_Is_Express
 
@@ -150,7 +156,7 @@ Let's take the list with several pages as an example. and let's say that we are 
 
 ## STARTING_OUR_API__HANDLING_GET_REQUESTS
 
-### HANDLING GET REQUEST
+### HANDLING_GET_REQUEST
 
 **Always read Comments from Codes:**
 
@@ -194,7 +200,7 @@ app.get('/api/v1/tours', (req, res) => {
 
 We usually called this function⤴ **rout handler**. Here we put what to do when someone hits this route. Here we just send back all the tours to that resource(/tours) [\dev-data\data\tours-simple.json in this file we have sample of tours json. This is a data that we are gonna be sending to the client]. Now before we sending data we actually need to first read it⤴. We don't do it inside the route handler, but we do it before get method. We can do it on top-level because top-level code is only executed once.
 
-### HANDLING POST REQUEST
+### HANDLING_POST_REQUEST
 
 Lets now implement a route handler for post request. So we can actually add a new Tour to our data set.
 
@@ -254,179 +260,121 @@ app.listen(port, () => {
 
 ## RESPONDING_TO_URL_PARAMETERS
 
-An easy way to defining parameters right in the url, how to then read these parameters and also how to respond to them.
+An easy way to defining parameters right in the url, how to then read these parameters and also how to respond to them.  
+code ⬇
 
-! code ⬇
+We want to actually implement a way of getting only one tour, So, right now we have '/tours' endpoint, which gives us all the tours, But we want like this: /tours/5 -It means get a specific tour using id or any other unique identifier. tours/3 here 3 will be a variable, because it can be 5, 3, 2 or anything else.
 
-? We want to actually implement a way of getting only one tour, So, right now we have '/tours' endpoint, which gives us all the tours, want to like this: /tours/5 -It means get a specific tour using id or any other unique identifier. tours/3 here 3 will be a variable, because it can be 5, 3, 2 or anything else.
+- So, we define a route, which can accept a variable.
+- We just add that variable after tours using **slash colon** like this /: i.e /api/v1/tours/:id/ , like this we created a variable called id, it could be anything else.
+- In the **request.params** all the parameters or all the variables that we define like this will stored. _console.log(req.params);_. we could use like this api/v1/tours/:id/:x/:y/:z then if we specify all these variables in the url then the req.params will give us all of that with corresponding  key value pairs in an object like this: { id: '3', x: '4', y: '1', z: '7' }.
+- If we define these in the url, we actually have to then specify, because we are now not hitting the exact route. for example if we specify here with id, x, y and z, but in the url we specify only 3 then it will give error, because id, x and y is not specified.
+- But there is a solution we can do, this is optional parameters. If we want to make any parameter optional then we simply add a question mark(?) to it. like this: /:y?
+- Then we will use **find() method**. And remember in **find method** we pass a callback function. In that callback function it will loop through the array elements and in each of iteration we will have to current element and we will return either true or false in each of iterations. **Now find method will do is that it will create an array which only contains the elements where this comparison is true.**
+- Now we have one problem here that in _req.pram.id_ gives a string like this {id: '3'}, but the solution is very easy. all we have to say the: _id = req.params.id * 1;_ **nice trick**
+- Now it's working, but one more problem is here that if we specify an id that is not exist in the file then it's not returning any error code. like for this: _tours/999_. So let's find the solution of this!!!
+- Simplest one is that to check the id is larger then length of the tours array, if it's larger then we send back 404 error saying we couldn't find any tour for the given id. Another solution is that after finding the array element by using find method. we just check for new array it is empty or not, if it's empty, just return and respond with 404 error. _if(!tour){}_. Remember if there is no tour found then tour will be undefined.
 
-- So, we define a route, which can accept a variable. 
-- we just add that variable after tours using slash colon like this /: i.e /api/v1/tours/:id/ , like this we created a variable called id, it could be anything else. 
-- In the request.params all the parameters or all the variables that we define like this will stored. console.log(req.params);. we could use like this api/v1/tours/:id/:x/:y/:z then if we specify all these variables in the url then the req.params will give as all of that with corresponding  key value pairs in an object like this: { id: '3', x: '4', y: '1', z: '7' }.
-- If we define these in the url, we actually have to then specify, because we are now not hitting the exact route. for example if we specify here with id, x, y and z, but in the url we specify only 3 then it will give error, because id, x and y is not specified. 
-- But there is a solution we can do, this is optional parameters. if we want to make any parameter optional then we simply add a question mark(?) to it. like this: /:y?
-- then we will use find method. and remember in find method we pass a callback function. In that callback function it will loop through the array elements and in each of iteration we will have to current element and we will return either true or false in each of iterations. Now find method will do is that it will create an array which only contains the elements where this comparison is true
-- Now we have one problem here that in req.pram.id gives a string like this {id: '3'}, but the solution is very easy. all we have to say the: id = req.params.id * 1; nice trick
-- Now it's working, but one more problem is here that if we specify an id that is not exist in the file then it's not returning any error code. like for this: tours/999. So let's find the solution of this!!!
-- Simplest one is that to check the id is larger then length of the tours array, if it's longer then we send back 404 error saying we couldn't find any tour for the given id. Another solution is that after finding the array element by using find method. we just check for new array it is empty or not, if it's empty, just return and respond with 404 error. if(!tour){}. remember if there is no tour found then tour will be undefined. 
+```js
 
-*/
+const fs = require('fs');
+const express = require('express');
 
-/*
+const app = express();
 
-  const fs = require('fs');
-  const express = require('express');
+app.use(express.json());
 
-  const app = express();
+const tours = JSON.parse(
+  fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
+);
 
-  app.use(express.json());
-
-  const tours = JSON.parse(
-    fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
-  );
-
-  const getAllTours = (req, res) => {
-    res.status(200).json({
-      status: 'success',
-      results: tours.length,
-      data: {
-        tours,
-      },
-    });
-  };
-
-  const getTour = (req, res) => {
-    // console.log(req.params);
-
-    const id = req.params.id * 1;
-    const tour = tours.find((el) => el.id === id);
-
-    // if (id > tours.length)
-    if (!tour) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'Invalid id',
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        tour,
-      },
-    });
-  };
-
-  const createTour = (req, res) => {
-    const newId = tours[tours.length - 1].id + 1;
-    const newTour = Object.assign({ id: newId }, req.body);
-
-    tours.push(newTour);
-
-    fs.writeFile(
-      `${__dirname}/dev-data/data/tours-simple.json`,
-      JSON.stringify(tours),
-      (err) => {
-        res.status(201).json({
-          status: 'success',
-          data: newTour,
-        });
-      }
-    );
-  };
-
-  const updateTour = (req, res) => {
-    if (req.params.id * 1 > tours.length) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'Invalid id',
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        tour: '<Updated tour here...>', // updated tour. but right now we are just sending string, we have't implemented update.
-      },
-    });
-  };
-
-  const deleteTour = (req, res) => {
-    if (req.params.id * 1 > tours.length) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'Invalid id',
-      });
-    }
-
-    res.status(204).json({
-      status: 'success',
-      data: null,
-    });
-  };
-
-  // app.get('/api/v1/tours/:id', getTour);
-  // app.get('/api/v1/tours', getAllTours);
-  // app.post('/api/v1/tours', createTour);
-  // app.patch('/api/v1/tours/:id', updateTour);
-  // app.delete('/api/v1/tours/:id', deleteTour);
-
-  app.route('/api/v1/tours').get(getAllTours).post(createTour);
-
-  app
-    .routes('/api/v1/tours/:id')
-    .get(getTour)
-    .patch(updateTour)
-    .delete(deleteTour);
-
-  const port = 3000;
-  app.listen(port, () => {
-    console.log(`listening on port ${port}`);
+const getAllTours = (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      tours,
+    },
   });
+};
 
-*/
+const getTour = (req, res) => {
+  // console.log(req.params);
 
-/*
+  const id = req.params.id * 1;
+  const tour = tours.find((el) => el.id === id);
 
-* Lecture 055
-* HANDLING PATCH REQUEST
-? How to handle patch request to actually update data. 
-! The code is after post method in above code ⬆
-Remember we have to http methods to update data, put & patch. with put we expect that our application receives the entire new updated object and with patch only expect the properties of the object. Usually we use patch because it's easier to simply update the properties, and it's also easier to user to simply send the data that is changing instead of sending the entire object. So we are going to work our app to patch not put. 
+  // if (id > tours.length)
+  if (!tour) {
+    return res.status(404).json({
+      status: 'fail',
+      message: 'Invalid id',
+    });
+  }
 
-- In this we also need the id of the tour that should be updated. 
-- here we are not going to updating tours, that would go lot of works. it's just a javascript. matching ids, getting from the json file and change that one and save it again to the file,  that is too much work. and in real world we would not have data in a file anywhere. 
-- So, let's simply send back a standard response. 
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour,
+    },
+  });
+};
 
+const createTour = (req, res) => {
+  const newId = tours[tours.length - 1].id + 1;
+  const newTour = Object.assign({ id: newId }, req.body);
 
-*/
+  tours.push(newTour);
 
-/*
+  fs.writeFile(
+      `${__dirname}/dev-data/data/tours-simple.json`,
+    JSON.stringify(tours),
+    (err) => {
+      res.status(201).json({
+        status: 'success',
+        data: newTour,
+      });
+    }
+  );
+};
 
-* Lecture 056
-* Handling DELETE requests
-! code is above in DELETE METHOD⬆ 
+const updateTour = (req, res) => {
+  if (req.params.id * 1 > tours.length) {
+    return res.status(404).json({
+      status: 'fail',
+      message: 'Invalid id',
+    });
+  }
 
-Finally, let's now handle he lead requests, And just like in previous lecture we'll not actually implement the deleting of a resource in route handle.  
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour: '<Updated tour here...>', 
+      // updated tour. but right now we are just sending string, we have't implemented update.
+    },
+  });
+};
 
+const deleteTour = (req, res) => {
+  if (req.params.id * 1 > tours.length) {
+    return res.status(404).json({
+      status: 'fail',
+      message: 'Invalid id',
+    });
+  }
 
-*/
+  res.status(204).json({
+    status: 'success',
+    data: null,
+  });
+};
 
-/*
+// app.get('/api/v1/tours/:id', getTour);
+// app.get('/api/v1/tours', getAllTours);
+// app.post('/api/v1/tours', createTour);
+// app.patch('/api/v1/tours/:id', updateTour);
+// app.delete('/api/v1/tours/:id', deleteTour);
 
-* Lecture 057
-* Refactoring Our Routes
-! code is above in DELETE METHOD⬆ 
-
-Reorganize some of our routes to make the cod a lot better.  
-right now we have all of thees routes so, the http methods and the url together with the route handler all over the place. 
-All routes should be together and the handler also together.
-
-- will export all the these handler functions into their own functions
-
-- // for delete we usually use 204 as a response, 204 means no content, So, as a result we usually don't sent any data back instead null -it show that the deleted resource no longer exists.
-
-- Now let's say we want to change version or resource name, we would then have to change in all of these five places. and that is not ideal. Instead of having all of these we can do something better using app.route()and then we can chain all of the http methods that have same routes. 
 app.route('/api/v1/tours').get(getAllTours).post(createTour);
 
 app
@@ -434,36 +382,87 @@ app
   .get(getTour)
   .patch(updateTour)
   .delete(deleteTour);
-*/
 
-/*
+const port = 3000;
+app.listen(port, () => {
+  console.log(`listening on port ${port}`);
+});
 
-* Lecture 058
-* Middleware and the Request-Response Cycle.
+```
 
-The request-response cycle or Express app receives a request when someone hits a server, for which it will then create a request and response objects. That data will then be used and precessed in order to generate and send back a meaningful response. 
+---
+
+## HANDLING_PATCH_REQUEST
+
+How to handle patch request to actually update data  
+
+***The code is after post method in above code ⬆***  
+**Remember** we have to http methods to update data, **put & patch**. With **put** we expect that our application receives the entire new updated object and with **patch** only expect the properties of the object. Usually we use **patch** because it's easier to simply update the properties, and it's also easier to user to simply send the data that is changing instead of sending the entire object. So we are going to work our app to **patch** not **put**.
+
+- In this we also need the id of the tour that should be updated.
+- here we are not going to updating tours, that would go lot of works. it's just a javascript. matching ids, getting from the json file and change that one and save it again to the file,  that is too much work. and in real world we would not have data in a file anywhere.
+- So, let's simply send back a standard response.
+
+---
+
+## Handling_DELETE_Requests
+
+code is above in DELETE METHOD ⬆
+
+Finally, let's now handle he lead requests, And just like in previous lecture we'll not actually implement the deleting of a resource in route handle.  
+
+---
+
+## Refactoring_Our_Routes
+
+CODE is above after DELETE METHOD ⬆
+
+Reorganize some of our routes to make the code a lot better.  
+Right now we have all of thees routes so, the http methods and the url together with the route handler all over the place.  
+All routes should be together and the handler also together.
+
+- will export all the these handler functions into their own functions
+
+- For delete we usually use 204 as a response, **204 means no content**, So, as a result we usually don't sent any data back instead null -it show that the deleted resource no longer exists.
+
+- Now let's say we want to change version or resource name, we would then have to change in all of these five places. and that is not ideal. Instead of having all of these we can do something better using **app.route()** and then we can chain all of the http methods that have same routes.  
+**app.route('/api/v1/tours').get(getAllTours).post(createTour);**
+
+```js
+app
+  .routes('/api/v1/tours/:id')
+  .get(getTour)
+  .patch(updateTour)
+  .delete(deleteTour);
+```
+
+---
+
+## Middleware_And_The_Request-Response_Cycle
+
+The request-response cycle or Express app receives a request when someone hits a server, for which it will then create a request and response objects. That data will then be used and precessed in order to generate and send back a meaningful response.
 
 - In order to process that data, in express we use something called middleware, which can manipulate the request or the response object. Or really execute any other code that we like. So, middleware doesn't always have to be just about the request or the response object but it usually is mostly about the request. We used Express.json() to get access to the request body on the request object in previous lecture. It's called middleware because it's a function that is executed between/ middle of receiving the request and sending the response.
 - And actually we can say that in Express, everything is middleware even our route definitions. Even when we defined our routes, we can think of the route handler function that we wrote as middleware functions. They are simply middleware functions that are only executed for certain routes.
-- Some examples of middleware are express.json(), which is also called body-parser, Or some logging functionality, Or setting some specific http headers. 
-- In more technically terms, we say that all the middleware together that we use in our app is called middleware stack. see pdf file. 
-- The order of middleware in the stack is actually defined by the order they are defined in the code. A middleware that appears first in the code will execute before that appears later. 
-- Our request and response object that were created in the beginning go through each middleware where they are processed or where just some other code is executed. Then at the end of each middleware function a next function is called and the middleware function will be executed from the stack with the exact same request and response objects. And that happens with all the middlewares until we reach the last one. So, just like this the initial request and response objects go through each middleware step by step, and we can think of this whole process as a kind of pipeline where our data go through. The last middleware function is usually a route handler. In this handler we do not call the next function to move to the next middleware, Instead we finally send the response data back to the client. And like this we finish the so-called request-response cycle. 
-- Request response cycle is everything that we talk about here together, It starts with the incoming request then executing all the middleware in the middleware stack step by step and finally sending response to finish the cycle. It's actually just a linear process.. 
+- Some examples of middleware are express.json(), which is also called body-parser, Or some logging functionality, Or setting some specific http headers.
+- In more technically terms, we say that all the middleware together that we use in our app is called middleware stack. see pdf file.
+- The order of middleware in the stack is actually defined by the order they are defined in the code. A middleware that appears first in the code will execute before that appears later.
+- Our request and response object that were created in the beginning go through each middleware where they are processed or where just some other code is executed. Then at the end of each middleware function a next function is called and the middleware function will be executed from the stack with the exact same request and response objects. And that happens with all the middlewares until we reach the last one. So, just like this the initial request and response objects go through each middleware step by step, and we can think of this whole process as a kind of pipeline where our data go through. The last middleware function is usually a route handler. In this handler we do not call the next function to move to the next middleware, Instead we finally send the response data back to the client. And like this we finish the so-called request-response cycle.
+- Request response cycle is everything that we talk about here together, It starts with the incoming request then executing all the middleware in the middleware stack step by step and finally sending response to finish the cycle. It's actually just a linear process..
 
 */
 /*
 
-* Lecture 059
-* Creating Our Own Middleware
+- Lecture 059
+- Creating Our Own Middleware
 
-? Let's now actually create our own middleware functions. 
+? Let's now actually create our own middleware functions.
 
 - In order to use middleware, we use 'use()' method -to add middleware to middleware stack. like app.use(express.json()); this express.json calling json method, returns a function, and that function is then added to the middleware stack. And similar to that we can create our own middleware functions. Let's do that now
 - We still use app.use() and in here to pass a function that we want to add to the middleware stack. and of course, in each middleware function we have to access to the request and response, and also as a third argument we have the next function. app.use((req, res, next) => {}); // here as req & res the next name is very common and use almost everywhere as a convention.
-- And then we actually need to call the next function. If we didn't call the next function then the request/response cycle would really be stuck at this point. Never forget to call the next function in middleware. 
-?- Remember this will apply to every single request. that's because we didn't specify any route. And remember our route handlers are also a middleware, they are simply middleware functions that only apply for a certain url(rout). 
-- And if any route handlers comes before the middleware, then for that route handler the middleware will not be called. because route handler and own middleware, both are middleware, and middlewares always execute step by step, according to their appearance in code. and by calling res.json() methods we ends the request-response cycle in that router handler. 
+- And then we actually need to call the next function. If we didn't call the next function then the request/response cycle would really be stuck at this point. Never forget to call the next function in middleware.
+?- Remember this will apply to every single request. that's because we didn't specify any route. And remember our route handlers are also a middleware, they are simply middleware functions that only apply for a certain url(rout).
+- And if any route handlers comes before the middleware, then for that route handler the middleware will not be called. because route handler and own middleware, both are middleware, and middlewares always execute step by step, according to their appearance in code. and by calling res.json() methods we ends the request-response cycle in that router handler.
 
 */
 const fs = require('fs');
@@ -628,10 +627,10 @@ app.listen(port, () => {
 
 /*
 
-* Lecture 060
-* Using 3rd party middleware
+- Lecture 060
+- Using 3rd party middleware
 
-Let's now use the third party middleware function from npm called Morgan in order to make our development life a bit easier. 
+Let's now use the third party middleware function from npm called Morgan in order to make our development life a bit easier.
 ? Morgan is very popular logging middleware, A middleware that's gonna allow us to see request data right in the console. app.use(morgan('dev'));
 
 GET /api/v1/tours/3 200 9.870 ms - 953 Here we have the information about request we get the http method, url, status code, time it took, and size of response in bytes.
@@ -640,13 +639,13 @@ GET /api/v1/tours/3 200 9.870 ms - 953 Here we have the information about reques
 
 /*
 
-* Lecture 061
-* Implementing the Users_Routes
+- Lecture 061
+- Implementing the Users_Routes
 
-Let's start to implement some routes for the user's resource. So our API will have a couple of different resources. 
+Let's start to implement some routes for the user's resource. So our API will have a couple of different resources.
 
-- The first one that we already talked about and started to implement is the tour resource. But another one will be the user's resource. for example we can create user accounts, and have different user roles, and all that stuff that comes with users. 
-- For now this user's resource will be very similar to tha tours resource. 
+- The first one that we already talked about and started to implement is the tour resource. But another one will be the user's resource. for example we can create user accounts, and have different user roles, and all that stuff that comes with users.
+- For now this user's resource will be very similar to tha tours resource.
 ! code implementation ⬆⬆
 
 app.route('/api/v1/users').get(getAllUsers).post(createUser);
@@ -661,12 +660,12 @@ app
 
 /*
 
-* Lecture 062
-* Creating and Mounting Multiple Routers.
-In this lecture things will start to get bit more advanced and that is because we'll now create multiple routers and use a precess called mounting. 
+- Lecture 062
+- Creating and Mounting Multiple Routers.
+In this lecture things will start to get bit more advanced and that is because we'll now create multiple routers and use a precess called mounting.
 
-- The ultimate goal of doing this will be to separate all the code that we have in this into multiple files. So, we want is to have one file that only contains the tours routes and one file that contains user's routes, and also want to have a file which contains the handlers only for the users and then also one file that will contain all the handlers for the tours. 
-- To do that we need to create one separate router for each of our resources, right now we have four routes(2 for users & 2 for tours) and they are all on the same router and that router is app object. If we want to separate these routes into different files then the best thing to do is to create one router for each of the resources(users & tours). 
+- The ultimate goal of doing this will be to separate all the code that we have in this into multiple files. So, we want is to have one file that only contains the tours routes and one file that contains user's routes, and also want to have a file which contains the handlers only for the users and then also one file that will contain all the handlers for the tours.
+- To do that we need to create one separate router for each of our resources, right now we have four routes(2 for users & 2 for tours) and they are all on the same router and that router is app object. If we want to separate these routes into different files then the best thing to do is to create one router for each of the resources(users & tours).
 
 const tourRouter = express.Router(); just like this we create a new router and save it into tourRouter variable. and user this router for the tours routes. like this: tourRouter.route('/api/v1/tours').get(getAllTours).post(createTour);
 
@@ -677,8 +676,6 @@ We'll use it as middleware. That's because this new modular tool router is actua
 - When we create router system like this, we actually say that we creating kind of small sub app for each of these resources. for root we simply add slash. like this tourRouter.route('/').get(getAllTours).post(createTour); and second route is route(':id')
 - lets do same for users.
 These process is called mounting a new router on a route.
-
-
 
 */
 const tourRouter = express.Router();
@@ -698,16 +695,16 @@ app.use('/api/v1/users', userRouter);
 
 /*
 
-* Lecture 063 
-* A Better File Structure
+- Lecture 063
+- A Better File Structure
 
-Let's now completely refactor our application that we have so far, and create a lot of new files and a whole new file structure. We really works with different modules and actually use them in a very meaningful way. 
+Let's now completely refactor our application that we have so far, and create a lot of new files and a whole new file structure. We really works with different modules and actually use them in a very meaningful way.
 
-- First we want to separate our routers into different files. 
-- we make two files, 1 for tours and another for users in a folder called routers 
-- shifts all related stuff to corresponding files. 
+- First we want to separate our routers into different files.
+- we make two files, 1 for tours and another for users in a folder called routers
+- shifts all related stuff to corresponding files.
 
-- Put everything together in one single main file in this case app.js, and this main file usually mainly used for middleware declarations. So, in app.js file we've all middlewares that we want to apply to all the routes. 
+- Put everything together in one single main file in this case app.js, and this main file usually mainly used for middleware declarations. So, in app.js file we've all middlewares that we want to apply to all the routes.
 
 We have Middlewares till now:
 
@@ -725,49 +722,48 @@ app.use((req, res, next) => {
   next();
 });
 
-
 This is for route(/api/v1/tours), we want tourRouter middleware
 app.use('/api/v1/tours', tourRouter);
 
 This is for route(/api/v1/users) we want userRouter tourRouter middleware
 app.use('/api/v1/users', userRouter);
 
-- Now remove the route handlers from the routes files. So, let's create a new folder, will be called controllers. It would make sense to create a handlers folder, but later in this course we will start using a software architecture called the Model View Controller. and in that architecture, these handler functions are actually called controllers. 
+- Now remove the route handlers from the routes files. So, let's create a new folder, will be called controllers. It would make sense to create a handlers folder, but later in this course we will start using a software architecture called the Model View Controller. and in that architecture, these handler functions are actually called controllers.
 
-- and we want to export all of functions from that toutController file, so we will put all of that functions on the export object. 
+- and we want to export all of functions from that toutController file, so we will put all of that functions on the export object.
 - And remember when we exports data using exports object and when we import everything into one object, then all of the data that was on exports is now gonna be on tourController. So we will have tourController.getAllTours, tourController.getTour etc.
 - another option is to when we importing then first destructure it with its names and then no need of tourController.
 
 - if we had only one export then we simply use module.exports = ___
 
 - Now we are gonna do is to create a server.js file as well. Why??
-simply because it's good practice to have everything that is related to express in one file. and everything that is related to the server in another main file. 
-- server.js file will actually be our starting file where everything starts, and it's there when we listen to our server. 
+simply because it's good practice to have everything that is related to express in one file. and everything that is related to the server in another main file.
+- server.js file will actually be our starting file where everything starts, and it's there when we listen to our server.
 const port = 3000;
 app.listen(port, () => {
   console.log(`listening on port ${port}...`);
-}); 
+});
 this things will go in server file. but the server file not know about app object so we need to import it from the app file. so first we export the app file and import it into server file. just using module.exports = app;
-Now simply this thing will goes to the server.js file. later on we wil actually have other stuff that will not related to express. like database configurations or some error handling stuff, or environment variables etc. 
+Now simply this thing will goes to the server.js file. later on we wil actually have other stuff that will not related to express. like database configurations or some error handling stuff, or environment variables etc.
 
 */
 
 /*
 
-* Lecture 064
-* Param Middleware
+- Lecture 064
+- Param Middleware
 
 Let's create a special type of middleware called param middleware.
 
-- Param Middleware is middleware that only runs for certain parameters, so basically when we have a certain parameter in our url. The only parameter in our example is might be id. 
-- And so we can write middleware that only runs when this id is present in the url. 
+- Param Middleware is middleware that only runs for certain parameters, so basically when we have a certain parameter in our url. The only parameter in our example is might be id.
+- And so we can write middleware that only runs when this id is present in the url.
 - on our router we write param() method, in this param() method we specify first the parameter that we actually want to search for, and then of course our actual middleware function, And as usual we have access to the request, and response object, and then also the next function. Now in param middleware function, we actually get access to a fourth argument and that one is the value of the parameter in question, here value holds actual value of id parameter, we usually call that one val,    like this: router.param('id', (req, res, next, val) => {
 
 })
 
 - and this middleware function is not going to run for any of the user routes will run for only tours routes.
 
-- We used id in getTour, updateTour and deleteTour handler functions. All of the handler functions that used id, we checked that actually the id is valid. All these four functions have very similar code where they check if the id is valid. and if not they send back the Invalid id response. So, we have all this code in the same place and it's not a good practice. We can use here param middleware and perform this check here. 
+- We used id in getTour, updateTour and deleteTour handler functions. All of the handler functions that used id, we checked that actually the id is valid. All these four functions have very similar code where they check if the id is valid. and if not they send back the Invalid id response. So, we have all this code in the same place and it's not a good practice. We can use here param middleware and perform this check here.
 
 */
 const router = express.Router();
@@ -778,57 +774,57 @@ router.param('id', (req, res, next, val) => {
 
 /*
 
-* Lecture 065
-* Chaining Multiple Middleware Functions
+- Lecture 065
+- Chaining Multiple Middleware Functions
 
-We gonna learn how to chain multiple middleware functions for the same route. Up until this point, whenever we wanted to define a middleware, we only ever passed one middleware function. for example for handling this post request, we only passed in this middleware function, which is createTour handler, that's only function that gonna be called whenever we get a post request. .post(tourController.createTour); 
+We gonna learn how to chain multiple middleware functions for the same route. Up until this point, whenever we wanted to define a middleware, we only ever passed one middleware function. for example for handling this post request, we only passed in this middleware function, which is createTour handler, that's only function that gonna be called whenever we get a post request. .post(tourController.createTour);
 
 - Now we want to run multiple middleware functions.
-? - why we want to run multiple middleware functions? 
-We might need run middleware before createTour here to actually check the data that is coming in the body. bit similar we did before for check id middleware. 
+? - why we want to run multiple middleware functions?
+We might need run middleware before createTour here to actually check the data that is coming in the body. bit similar we did before for check id middleware.
 - for post method we might check if the request.body actually contains the data that we want for the tour.
 - Create a checkBody middleware function
 - check if body contains the name and price property. If not send back 400(bad request) error.
-- Add it to the post handler stack. 
-and we will put that function before tourController.createTour function. like this: .post(middlewareName, tourController.createTour); Here first middlewareName function will execute first and then createTour will execute. 
+- Add it to the post handler stack.
+and we will put that function before tourController.createTour function. like this: .post(middlewareName, tourController.createTour); Here first middlewareName function will execute first and then createTour will execute.
 .post(tourController.checkBody, tourController.createTour); This is how we chain middleware functions. first will execute checkBody and then createTour.
 
 */
 
 /*
 
-* Lecture 066
-* Serving Static Files
+- Lecture 066
+- Serving Static Files
 
-How to serve static files with Express. 
+How to serve static files with Express.
 ? What is static file?
-It's a file that are sitting in our file system that we currently cannot access using all routes. for example, we have this overview.html in public folder. But right now there's no way that we can access this using a browser. And same for these image file that we have here, or CSS or the javascript files. That's simple because we didn't define any route for the url. We do not have any handler that is associated to this  routes(/public/overview.html). 
-Now if we actually want to access something from our file system, we need to use built-in Express middleware. app.use(express.static(`${__dirname}/public`)); Just doing this in app folder now we'll be able to open this overview.html at this url http://127.0.0.1:3000/overview.html With out public folder in url. 
-? Why we not need public in url? 
-Simply because when we open up a url that it can't find in any of routes, it will then look in that public folder that we defined in App.js file. and it set that public folder kind of root folder. 
+It's a file that are sitting in our file system that we currently cannot access using all routes. for example, we have this overview.html in public folder. But right now there's no way that we can access this using a browser. And same for these image file that we have here, or CSS or the javascript files. That's simple because we didn't define any route for the url. We do not have any handler that is associated to this  routes(/public/overview.html).
+Now if we actually want to access something from our file system, we need to use built-in Express middleware. app.use(express.static(`${__dirname}/public`)); Just doing this in app folder now we'll be able to open this overview.html at this url <http://127.0.0.1:3000/overview.html> With out public folder in url.
+? Why we not need public in url?
+Simply because when we open up a url that it can't find in any of routes, it will then look in that public folder that we defined in App.js file. and it set that public folder kind of root folder.
 
 */
 
 /*
 
-* Lecture 067
-* Environment Variables
+- Lecture 067
+- Environment Variables
 
-In this we'll learn all about environment variables. 
+In this we'll learn all about environment variables.
 Node.JS, or Express applications can run in different environments. And the most important ones are the development environment and the production environment. That's  because depending on the environment, we might use different databases, for example or we might turn login on or off, or we might turn debugging on or off, or really all kinds of different settings that might change depending on the development that we're in. So again the most important ones are the development and the production environment. But there are other environments that bigger teams might use. So this type of setting that we discuss like different databases or login turned on or off, that will be based on environment variables. By default Express sets the environment to development which makes a lot of sense because that's what we're doing when we start a new project.
 We are implementing in server.js file. because it's not related to express, it's related node.js.
 console.log(app.get('env')); // output: development. That's the environment that we're currently in. so this app.get('env) will get us env environment variable.
 In summary, environment variables are global variables that are used to define the environment in which a node app is running. So this one is set by express. but nodejs itself actually sets a lot of environments. Now this env variable is actually set by Express. but nodejs itself actually also sets a lot of environment variables. So, let's take a look at those as well.
 this one are located at process.env console.log(process.env)
-console.log(process.env); // here we've bunch of diff variables. Node uses most of them internally. for example a task to current working directory here.. These variables come from the process core module and we're set at the moment that the process started, and we didn't have to require the process module, it's available everywhere automatically. 
+console.log(process.env); // here we've bunch of diff variables. Node uses most of them internally. for example a task to current working directory here.. These variables come from the process core module and we're set at the moment that the process started, and we didn't have to require the process module, it's available everywhere automatically.
 Now in express, many packages depend on a special variable called NODE_ENV. It's a variable that's kind of a convention which should define whether we're in development or in production mode. However Express does not really define this variable, so we have to do that manually. And there are multiple ways in which we can do it, but let's start with the easiest one which is to use the terminal.
 When we started this process we did it using npm start. and nmp start stands for "nodemon server.js", So, we use nodemon server.js to start the process. But if we want to set an environment variable for this process, we need to pre-plan that variable.
 NODE_ENV this is a special variable. for that we will do in terminal
 NODE_ENV=development nodemon server.js By using this command we defined NODE_ENV=development environment variable. We can define even more(X=23) if we wanted.  NODE_ENV=development X=23 nodemon server.js
 console.log(process.env); Using this we can see environment variables including our defined one.  
-Many packages on npm that we use for express development actually depend on this environment variable. And so, when a project is ready and we are gonna deploy it, we then should change the NODE_ENV and variable to production. And we'll do that of course once we deploy the project. 
-So, we set NODE_ENV and X as environment variables, but we can do a lot more. We usually use environment variables like configuration settings for our applications. So whenever our app needs some configuration for stuff that might change based on the environment that the app is running in, we use environment variables. For example we might use different databases for development and for testing until we could define one variable for each and then activate the right database according to the environment. Also we could set sensitive data like passwords and username using environment variables. Now it's not really practical to always define all of these variables in the command where we start the application. 
-? And so instead we create a configuration file config.env So env is the convention for defining a file which has environment variables. 
+Many packages on npm that we use for express development actually depend on this environment variable. And so, when a project is ready and we are gonna deploy it, we then should change the NODE_ENV and variable to production. And we'll do that of course once we deploy the project.
+So, we set NODE_ENV and X as environment variables, but we can do a lot more. We usually use environment variables like configuration settings for our applications. So whenever our app needs some configuration for stuff that might change based on the environment that the app is running in, we use environment variables. For example we might use different databases for development and for testing until we could define one variable for each and then activate the right database according to the environment. Also we could set sensitive data like passwords and username using environment variables. Now it's not really practical to always define all of these variables in the command where we start the application.
+? And so instead we create a configuration file config.env So env is the convention for defining a file which has environment variables.
 NODE_ENV="development"
 USER=muhammad
 PASSWORD =123456
@@ -840,20 +836,20 @@ So, we need some way of reading these variables from this file and then saving t
 - After installing go to our server and require this module const dotenv = require('dotenv');
 and then we can simply use this dotenv variable call config on it and then in there we just have to pass an object to specify the path where our configuration file is located. dotenv.config({ path: './config.env' }); And so this command will read our variables from the file and save them into nodeJs environment variables. we can log these variables using console.log(process.env);
 
-Now we use this NODE_ENV variable and PORT variable. 
+Now we use this NODE_ENV variable and PORT variable.
 to do that we go into app.js and somewhere here the port should be defined and somewhere here our logger middleware and what we wanna do now, Only run that middleware so to only define it when we are actually in development. So that the login does not happen when the app is in the production. if NODE_ENV === 'environment' only then use Morgan. if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-? Why we have to access to this environment variable in app.js file, when we didn't define them in this file but in server.js. 
-The answer to that is that the reading of the variables from the file to the node process only needs to happen once. It's then in the process and the process is of course the same no matter in what file we are. We're always in the same process and the environment variables are on the process. And the process that is running or application is running always the same and so this is available in every single file. 
+? Why we have to access to this environment variable in app.js file, when we didn't define them in this file but in server.js.
+The answer to that is that the reading of the variables from the file to the node process only needs to happen once. It's then in the process and the process is of course the same no matter in what file we are. We're always in the same process and the environment variables are on the process. And the process that is running or application is running always the same and so this is available in every single file.
 
 Now use PORT variable: const port = process.env.PORT || 3000;
 
-And lets now quickly do an http request to see if our logger still works. 
+And lets now quickly do an http request to see if our logger still works.
 
-Finally let's add a new start script to our package.json file. 
-right now we have "start": "nodemon server.js", but we also want to add another one for production. just to test what happen in that situation. Now we have: 
+Finally let's add a new start script to our package.json file.
+right now we have "start": "nodemon server.js", but we also want to add another one for production. just to test what happen in that situation. Now we have:
   "start:dev": "nodemon server.js",
   "start:prod": "SET NODE_ENV=production & nodemon server.js"
 
@@ -861,10 +857,10 @@ right now we have "start": "nodemon server.js", but we also want to add another 
 
 /*
 
-* Lecture 068
-* Setting up ESLint + Prettier in VS Code
-? How to setup ESLint with Prettier in VS Code in order to improve our code quality? 
-So, ES Lint is basically a program that constantly scans our code and finds potential coding errors or simply bad coding practices that it think are wrong. and it's very very configurable so that we can really fine tune it to our needs and coding habits. And we can also use ES Lint for code formatting, but we'll continue using prettier. Prettier will be our main code formatter but based on ES Lint rules that we'll define. And so all that ES Lint will do for us is to highlight the errors. 
+- Lecture 068
+- Setting up ESLint + Prettier in VS Code
+? How to setup ESLint with Prettier in VS Code in order to improve our code quality?
+So, ES Lint is basically a program that constantly scans our code and finds potential coding errors or simply bad coding practices that it think are wrong. and it's very very configurable so that we can really fine tune it to our needs and coding habits. And we can also use ES Lint for code formatting, but we'll continue using prettier. Prettier will be our main code formatter but based on ES Lint rules that we'll define. And so all that ES Lint will do for us is to highlight the errors.
 STEPS:
 
 - install ES-Lint and Prettier
@@ -872,13 +868,12 @@ STEPS:
 - npm i eslint prettier eslint-config-prettier eslint-plugin-prettier eslint-config-airbnb eslint-plugin-node eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react --save-dev
 - Now the next step is that we need config files for both prettier and esLint
 
-
 ? Description about we installed plugins
 
 - eslint-config-prettier: this onw will disable formatting for es Lint, because we want prettier as a formatter.
-- eslint-plugin-prettier: this will allow es Lint to formatting errors as we type. 
-- eslint-config-airbnb: We need some job good javascript style guide that we can follow, And there are many style guides out there but the most popular one is airbnb style guide. 
-- eslint-plugin-node: this will add a couple of specific eslint rules only for nodejs. 
+- eslint-plugin-prettier: this will allow es Lint to formatting errors as we type.
+- eslint-config-airbnb: We need some job good javascript style guide that we can follow, And there are many style guides out there but the most popular one is airbnb style guide.
+- eslint-plugin-node: this will add a couple of specific eslint rules only for nodejs.
 - Finally there eslint other plugins which are only necessary in order to make the airbnb style guide actually work
 eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
 ! SECTION END #06
