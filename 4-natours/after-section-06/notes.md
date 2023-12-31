@@ -461,7 +461,7 @@ The **Request-Response Cycle** or **Express App** receives a request when someon
 - Our request and response object that were created in the beginning go through each middleware where they are processed or where just some other code is executed. Then at the end of each middleware function a next function is called and the middleware function will be executed from the stack with the exact same request and response objects. And that happens with all the middlewares until we reach the last one. So, just like this the initial request and response objects go through each middleware step by step, and we can think of this whole process as a kind of **pipeline** where our data go through. **The last middleware function is usually a route handler**. In this handler we do not call the next function to move to the next middleware, Instead we finally send the response data back to the client. And like this we finish the so-called request-response cycle.
 - **Request-Response cycle is everything that we talk about here together, It starts with the incoming request then executing all the middleware in the middleware stack step by step and finally sending response to finish the cycle. It's actually just a linear process.**
 
---
+---
 
 ## Creating_Our_Own_Middleware
 
