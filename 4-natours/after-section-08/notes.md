@@ -18,6 +18,12 @@
     3. [Creating_A_Simple_Tour_Model](#creating_a_simple_tour_model)
     4. [Creating_Documents_And_Testing_The_Model](#creating_documents_and_testing_the_model)
     5. [MVC_Architecture](#mvc_architecture)
+    6. [Another_Way_of_Creating_Documents](#another_way_of_creating_documents)
+    7. [Reading_Documents](#reading_documents)
+    8. [Updating_Documents_Mongoose](#updating_documents_mongoose)
+    9. [Deleting_Document](#deleting_document)
+    10. [Modelling_the_Tours](#modelling_the_tours)
+    11. [Importing_Development_Data](#importing_development_data)
 
 ## MongoDB_Fundamentals
 
@@ -492,7 +498,7 @@ testTour
   );
 ```
 
-These codes are completely deleted ⤴⤴
+These codes are completely deleted ⤴⤵
 
 ---
 
@@ -527,24 +533,25 @@ exports.checkBody = (req, res, next) => {
 
 ---
 
-## Another Way of Creating Documents
+## Another_Way_of_Creating_Documents
 
 We'll implement the createTour function, which is the handler function that is called as soon as there is a post request to the /tours route.
 
-- We are going to to implement this createTour ⬇ function based on the data that comes in from the body.
-- const newTour = new Tour({}) And then
-newTour.save(); // This will work finely. But we can do it in an even easier way.
-Tour.create({
+We are going to to implement this createTour ⬇ function based on the data that comes in from the body.  
+**const newTour = new Tour({})** And then  
+**newTour.save();** // This will work finely. But we can do it in an even easier way.
 
-}).then()
-Pass the data here, that will do exact same thing. The main difference is that in this version(Tour.create({})), we basically call the method directly on the tour ie on model itself, while in first one we called the method on the new document. As save method return promise this create method also return promise as well. Instead of using then method we'll start using async-await. so we convert our function to async function. and make Tour.create await and store in a variable.
+**Tour.create({}).then()**  
+Pass the data here, that will do exact same thing. The main difference is that in this version(Tour.create({})), we basically call the method directly on the tour i-e on model itself, while in first one we called the method on the new document. As save method return promise this create method also return promise as well. Instead of using then method we'll start using async-await. so we convert our function to async function. and make Tour.create await and store in a variable.  
 
-- We pass request.body in Tour.create method, because that's the data that comes with the post request.
-! Remember: In post method the data will always comes from the request body
-- As we doing with async/await, so we use try/catch block to catch errors.
-? What do we put in catch block as an error?
-So, for that we need to think about when exactly an error can happen. If we try to post without filling any required fields, then it will give us validation errors. and it's one of the errors that would get catched here. because if we try to create a document, without one of the require fields, then this promise(return of tour.create()) would be rejected. And so if we have a rejected promise then it'll enter in the catch block. So, therefor in this catch block we want to send back a response saying that there was an error.
+We pass request.body in Tour.create method, because that's the data that comes with the post request.  
+**Remember:** In post method the data will always comes from the request body  
+As we doing with async/await, so we use try/catch block to catch errors.  
 
+**What do we put in catch block as an error?**  
+So, for that we need to think about when exactly an error can happen. If we try to post without filling any required fields, then it will give us validation errors. and it's one of the errors that would get catches here. because if we try to create a document, without one of the require fields, then this promise(return of tour.create()) would be rejected. And so if we have a rejected promise then it'll enter in the catch block. So, therefor in this catch block we want to send back a response saying that there was an error.
+
+```json
 We put these in body in Postman:
 {
     "name": "Test Tour",
@@ -553,21 +560,21 @@ We put these in body in Postman:
     "price": 300,
     "rating": 4.7
 }
-?But difficulty and duration are not included, although we specify in body. This is because these two fields are not in our schema. and so therefor they are not put in the database.
+```
 
-- So everything else that is not in our schema is simply ignored. THAT'S THE POWER OF OUR SCHEMA.
-- And if we send this data again it's giving an error. Why is that? because we defined the the name should be unique.
+But difficulty and duration are not included, although we specify in body. This is because these two fields are not in our schema. and so therefor they are not put in the database.
 
-*/
+So everything else that is not in our schema is simply ignored. THAT'S THE POWER OF OUR SCHEMA.  
+And if we send this data again it's giving an error. Why is that? because we defined the the name should be unique.
+
+```js
 
 exports.createTour = async (req, res) => {
   try{
-
     // Creating a documents:
     // const newTour = new Tour({})
     // newTour.save(); Instead of this:
     const newTour = await Tour.create(req.body);
-    
     
     res.status(201).json({
       status: 'success',
@@ -584,28 +591,29 @@ exports.createTour = async (req, res) => {
     }
 };
 
-/*
+```
 
-- lecture 089
-- Reading Documents
+---
+
+## Reading_Documents
 
 Let's now learn how to read documents with Mongoose in order to implement our getTour and getAllTours route handlers. Starting with getAllTours handler.
 
-- Remember we learn from intro section, to query for all the documents we simply used find(). If we don't pass anything into it, then it'll return all the documents in that collection, in this case in tour collection.
-- Just like before, this is(find method) gonna return a promise that we'll await.
+Remember we learn from intro section, to query for all the documents we simply used find(). If we don't pass anything into it, then it'll return all the documents in that collection, in this case in tour collection.  
+Just like before, this is(find method) gonna return a promise that we'll await.
 
-? Next up lets implement the getTour handler.
+Next up lets implement the getTour handler.
 
-- Here we use findById instead of just find.
-? But were from that id coming from? So, let's take a look at the route. 127.0.0.1:3000/api/v1/tours/2 like this we call endpoint. Or by real id like this: 127.0.0.1:3000/api/v1/tours/6535233aa57a9f3860f97897
-So, here we have the id right in our route. Remember like this '/:id' specified id in url. So, this id is gonna be part of request obviously. To how do we get access to that id here in getTour handler?
-We do req.params.id
-- Here this findById() method, is really just a short-hand -so a helper function- for findOne({_id:req.params.id }) with filter object. So
-?findOne({_id:req.params.id}) is exact same as findById(req.params.id)
+Here we use findById instead of just find.  
+**But were from that id coming from?** So, let's take a look at the route. 127.0.0.1:3000/api/v1/tours/2 like this we call endpoint. Or by real id like this: 127.0.0.1:3000/api/v1/tours/6535233aa57a9f3860f97897  
+So, here we have the id right in our route. Remember like this '/:id' specified id in url. So, this id is gonna be part of request obviously. **So how do we get access to that id here in getTour handler?**  
+_We do **req.params.id**_  
+Here this findById() method, is really just a short-hand -so a helper function- for findOne({_id:req.params.id }) with filter object. **So**  
+findOne({_id:req.params.id}) is exact same as findById(req.params.id)
 
-*/
+getAllTours() Handler Code
 
-// * getAllTours() Handler [code]
+```js
 exports.getAllTours = async (req, res) => {
 try{
 
@@ -625,7 +633,11 @@ try{
 }
 };
 
-// * getTour Handler  [code]
+```
+
+getTour() Handler Code
+
+```js
 exports.getTour = (req, res) => {
   try{
    const tour = await Tour.findById(req.params.id)
@@ -646,32 +658,43 @@ exports.getTour = (req, res) => {
   }
 };
 
-/*
+```
 
-- lecture 090
-- Updating Documents
+---
 
-? Now let's implement document updating.
-So, here in our update tour handler, let's start by making it async func.
+## Updating_Documents_Mongoose
 
-- then we need to query/get that document that we want to update and update it.
-We can actually do all in one command in mongoose. and remember we gonna update based on id. We just use findByIdAndUpdate() method, here we'll pass the id, and then the data that we want to change. and that date will be in the body just like in the post request, here actually a third argument, we can pass some options in object. some options are:
-- new: true, This way the new updated documented will be returned, since we want to send back that updated document.
-- runValidators: true, Each time that we update a certain a document, then the validators that we specified in the schema will run again.
+Now let's implement document updating.  
 
+So, here in our update tour handler, let's start by making it async func.  
+Then we need to query/read/get that document that we want to get and update it.  
+We can actually do all in one command in mongoose. and remember we gonna update based on id. We just use **findByIdAndUpdate() method**, here we'll pass the id, and then the data that we want to change. and that date will be in the body just like in the post request, here actually a third argument, we can pass some options in object. **some options are:**
+
+**new: true**, This way the new updated documented will be returned, since we want to send back that updated document.  
+**runValidators: true**, Each time that we update a certain a document, then the validators that we specified in the schema will run again.  
+
+```js
 const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
   new: true,
+  runValidator: true
 });
+```
 
-! REMEMBER: All of the method(find, findById...) that we are using will returns queries.
+**REMEMBER:** All of the method(find, findById...) that we are using will returns queries.
 
-! CHECK MONGOOSE DOC <https://mongoosejs.com/docs/api/model.html>
-In documentation of Mongoose, In model section, we see list of methods, and some of them are with just model like model.findOne() and some with model.prototype like Model.prototype.save(), When we see model.prototype then it means that method is available on all the instances created through a model, not the model itself. Example:
-const newTour = new Tour({})// Here newTour is and instance of Tour model
+_**CHECK MONGOOSE DOC <https://mongoosejs.com/docs/api/model.html>**_  
+
+In documentation of Mongoose, In model section, we see list of methods, and some of them are with just model like **Model.findOne()** and some with **Model.prototype** like **Model.prototype.save()**, When we see **model.prototype** then it means that method is available on all the instances created through a model, not the model itself.
+**Example:**  
+
+```js
+const newTour = new Tour({}) // Here newTour is and instance of Tour model
 newTour.save() // here save is only available on newTour not on Tour.
+```
 
-*/
+// updateTour() Handler
 
+```js
 exports.updateTour =async (req, res) => {
   try{
     const tour = Tour.findByIdAndModify(req.params.id, req.body, {
@@ -692,17 +715,19 @@ exports.updateTour =async (req, res) => {
     })
   }
 };
-// !Here one thing remember: we are using patch method, so the only that field will change. And if we doing put request, the entire original object will be completely replaced with modified one, that is sending in body.
 
-/*
+```
 
-- lecture 091
-- Deleting Documents
+**Here one thing Remember:** We are using PATCH method, so the only that field will change. And if we doing put request, the entire original object will be completely replaced with modified one, that is sending in body.
 
-*/
+---
+
+## Deleting_Document
+
+```js
+
 exports.deleteTour = async (req, res) => {
   try{
-
     const tour = await Tour.findByIdAndDelete(req.params.id);
     res.status(204).json({
       status: 'success',
@@ -714,47 +739,53 @@ exports.deleteTour = async (req, res) => {
       message: err
     })
   }
-
 }
 
-/*
+```
 
-- lecture 092
-- Modelling the Tours
+---
+
+## Modelling_the_Tours
 
 It's now time to finally Model our tour data a bit better in order to make the tours more complete. At this point, our tour documents only have a name, a rating, and a price. But we need so much more data here.
 
-maxGroupSize: how many people at most take part of one tour.
-ratingAverage and ratingQuality will be calculated based on the on reviews, So, there should not be required.
+maxGroupSize: how many people at most take part of one tour.  
+ratingAverage and ratingQuality will be calculated based on the on reviews, So, there should not be required.  
 
-One new schema type, not used yet:
-trim: true, Trim only works for strings, which'll remove all the white space in the beginning and in the end of the string.
+**One new schema type, not used yet:**  
+**trim: true**, Trim only works for strings, which'll remove all the white space in the beginning and in the end of the string.
 
+```js
 imageCover: {
     type: String,
-
 }
+```
 
-- Here type: String, because this will simply be the name of the image, which then later, we'll be able to read from the file system. -We want just the name of image, basically a reference will be stored in the database. We could store an entire image in a database but that's usually not a good idea. we simply leave the images somewhere in the file system and put the name of the image itself in the database as a field.
+Here⤴ type: String, because this will simply be the name of the image, which then later, we'll be able to read from the file system. -We want just the name of image, basically a reference will be stored in the database.  
+We could store an entire image in a database but that's usually not a good idea. we simply leave the images somewhere in the file system and put the name of the image itself in the database as a field.
 
 images: [Strings],
 
-- Rest of the images, because we have multiple images, and want to save those images as an array, as an array of strings. And so the way to do it is to simply specify here.
+Rest of the images, because we have multiple images, and want to save those images as an array, as an array of strings. And so the way to do it is to simply specify here.  
 images: [Strings] -It means an array which we have a number of strings.
 
+```js
 createdAt: {
   type: Date,
   default: Date.now()
 }
-createdAt field should basically be a timestamp that is set by the time that thw user gets a new tour.
+```
 
-- Date is yet another javascript built-in datatype, and so we can use that here.
-- default will be the javascript built-in function Date.now(), this will simply give us a timestamp in milliseconds, which basically represents the current millisecond. Now in mongo this is now immediately converted to today's data,
+createdAt field should basically be a timestamp that is set by the time that the user gets a new tour.
 
-An array of start dates. startDates are basically different dates at which a tour starts. For example, we have a tour starting in december and then in february and then another one in the summer. So, different dates for the same tour.
+**Date is yet another javascript built-in datatype**, and so we can use that here.  
+Default will be the javascript built-in function Date.now(), this will simply give us a timestamp in milliseconds, which basically represents the current millisecond. Now in mongo this is now immediately converted to today's data,
+
+An array of start dates. startDates are basically different dates at which a tour starts. For example, we have a tour starting in december and then in february and then another one in the summer. So, different dates for the same tour.  
 Mongo will automatically try to parse the string that we passed in as the date into a real javascript data.
 
-*/
+```js
+
 const mongoose = require('mongoose');
 const { default: slugify } = require('slugify');
 
@@ -809,15 +840,15 @@ const tourSchema = new mongoose.Schema({
     default: Date.now()
   },
   startDates: [Date],
-
 })
 
 const Tour = mongoose.model('Tour', tourSchema);
 
-/*
+```
 
-- lecture 093
-- Importing Development Data
+---
+
+## Importing_Development_Data
 
 ? We'll build a little script that will import the tour data from our JSON file into the MongoDB database.
 We'll gonna script that will simply load the data from the JSON file into the database. This script is completely independent from our express application. It only gonna run once in the beginning.
