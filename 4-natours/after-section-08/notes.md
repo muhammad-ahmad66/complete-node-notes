@@ -24,6 +24,9 @@
     9. [Deleting_Document](#deleting_document)
     10. [Modelling_the_Tours](#modelling_the_tours)
     11. [Importing_Development_Data](#importing_development_data)
+    12. [Making_the_API_Better_Filtering](#making_the_api_better_filtering)
+        1. [Advanced_Filtering](#advanced_filtering)
+        2. [SORTING](#sorting)
 
 ## MongoDB_Fundamentals
 
@@ -850,87 +853,115 @@ const Tour = mongoose.model('Tour', tourSchema);
 
 ## Importing_Development_Data
 
-? We'll build a little script that will import the tour data from our JSON file into the MongoDB database.
-We'll gonna script that will simply load the data from the JSON file into the database. This script is completely independent from our express application. It only gonna run once in the beginning.
+We'll build a little script that will import the tour data from our JSON file into the MongoDB database.
+We'll gonna write a script that will simply load the data from the JSON file into the database. This script is completely independent from our express application. It only gonna run once in the beginning.
 
-- Will add a new file named as import-dev-data.js in data folder.
-- We need mongoose, and connection.  See import-dev-data.js file.
-- we'll also access to tour module, where we want to write the tours.  
+Will add a new file named as import-dev-data.js in data folder.  
+We need mongoose, and connection.  See import-dev-data.js file.  
+we'll also access to tour module, where we want to write the tours.  
 
-- Let's now learn a tiny little bit about interacting with the command line.
-- We'll run functions that are in import-dev-data.js file, without calling any of these functions.
+Let's now learn a tiny little bit about interacting with the command line.  
+We'll run functions that are in import-dev-data.js file, without calling any of these functions.  
 
-! Always remember './' in any path dot is always relative from the folder where the node application was actually started and `${__dirname}/` is relative to the current folder where current script is.
+**Always Remember** './' in any path dot is always relative from the folder where the node application was actually started and `${__dirname}/` is relative to the current folder where current script is.
 
-! SEE import-dev-data.js FILE
+SEE import-dev-data.js FILE
 
-*/
+---
 
-/*
-
-- lecture 094
-- Making the API Better_Filtering
+## Making_the_API_Better_Filtering
 
 Now we'll implement couple of common API features that make an API easier and more pleasant to use for users.
+**In this lecture we'll start form Filtering**  
 
-- In this lecture we'll start form Filtering
-The first feature that we're gonna implement is to allow the user to basically filter data using a query string.
+### Filtering
+
+The first feature that we're gonna implement is to allow the user to basically filter data using a query string.  
 From get all the tours routes, we want to allow the user to filter the data, so that instead of getting all the data, the user only gets the data that matches the filter. Like this, we can basically allow the user to query the data in a very easy way using the query string.
-? What a query string is?
-A query string looks a bit like this: after a url, question mark(?)and then we can simply specify some field value pairs. like this: 127.0.0.1:3000/api/v1/tours?duration=5&difficulty=easy -We've build a query string like this.
-? A query string start with question mark and then specify as many as key value pairs using this format: ?duration=5&difficulty=easy
 
-- if we write in postman, the postman recognizes this and basically parses this string and puts the key and value down in Params tab. TEST IN POSTMAN
+#### What a query string is?
 
-? Now we need a way of accessing that data in a query string, from our express application.
-THAT'S VERY EASY! because Express already took care of that. That's just one of the many many things that express does for us in order to really make NodeJS development a lot faster. just see using this code in getAllTour handler because we do this kind of filtering in the route where we want to get all the tours.
-console.log(req.query);
-req.query should give us an object nicely formatted with the data from the query string.
+**A query string looks a bit like this: after a url, question mark(?)and then we can simply specify some field value pairs**. like this: 127.0.0.1:3000/api/v1/tours?duration=5&difficulty=easy -We've build a query string like this.  
+A query string start with question mark and then specify as many as key value pairs using this format: **?duration=5&difficulty=easy**
 
-- After consoling req.query we got the object { duration: '5', difficulty: 'easy' }
-- Now use this data to implement our filtering.
-- In Mongoose there are actually two ways of writing database queries.
-1- First one is to just use filter object just like we did in MongoDB introduction section.
-const tours = await Tour.find({
-  duration: 5,
-  difficulty: 'easy'
-})
-2- Second way is to use some special mongoose methods.
-We'll chain some special Mongoose method to basically build the query similar to the first one.
-const tours = await Tour.find().where('duration').equals(5).where('difficulty').equals('easy');
-There are tons of other methods like. Instead of equals(), lt(), lte() sort results, or limit the number of results etc...
-? In our application we're gonna use 1st approach.
+If we write in postman, the postman recognizes this and basically parses this string and puts the key and value down in Params tab. TEST IN POSTMAN
 
-! We see filter object in find method that is very similar to the returning req.query, So we can just pass req.query into find method. Just like this:
+Now we need a way of accessing that data in a query string, from our express application.  
+**THAT'S VERY EASY!** Because Express already took care of that. That's just one of the many many things that express does for us in order to really make NodeJS development a lot faster. Just see using this code in getAllTour handler because we do this kind of filtering in the route where we want to get all the tours.  
+console.log(req.query);  
+**req.query** should give us an object nicely formatted with the data from the query string.
+
+After consoling req.query we got the object. _**{ duration: '5', difficulty: 'easy' }**_  
+Now use this data to implement our filtering.  
+In Mongoose there are actually two ways of writing database queries.
+
+1. First one is to just use filter object just like we did in MongoDB introduction section.
+
+    ```js
+    const tours = await Tour.find({
+      duration: 5,
+      difficulty: 'easy'
+    })
+    ```
+
+2. Second way is to use some special mongoose methods.  
+    We'll chain some special Mongoose method to basically build the query similar to the first one.
+
+    ```js
+    const tours = await Tour.find().where('duration').equals(5).where('difficulty').equals('easy');
+    ```
+
+    There are tons of other methods like. Instead of equals(), lt(), lte() sort results, or limit the number of results etc...
+
+_In our application we're gonna use 1st approach._
+
+**We see filter object in find method that is very similar to the returning req.query**, So we can just pass req.query into find method. Just like this:  
+
+```js
 const tours = await Tour.find(req.query);
-? Now problem with this implementation is that it's actually way too simple and tha's because, later on we will have other query parameters, for example sort, for sorting functionality, or page for pagination, And so we need to make sure that we are not querying for these in our database. If we search page=2 then we will not get any results. Because there is no document in this collection where page is set to two. So, we only want to use this parameter(page=2) to implement pagination and not to actually query in the database.
-So, we'll have to do is, to basically exclude these special field names from our query string before we actually do the filtering.
-What we'll do for that:
+```
 
-- First will create a shallow copy of the request.query object. Here to copy we need really a hard copy. We could just do like this const queryObj = req.query. Then if we would delete something from copied object(queryObj), we would also delete it from the request.query object. that's because in javascript we set a variable to another object, then that new variable will basically just be a reference to that original object. So we really need a hard copy here.
-In javascript, there's not really a built-in way of doing this, but a very nice trick that we can use, since ES6, is to use first destructuring  and then we can simply create a new object out of that. Destructuring will basically take all the fields out of the object, and with the curly braces we simply create a new object like this: const queryObj = {...req.query
-const queryObj = {...req.query}; that's the copy
-- Than we have to create an array of all the fields that we want to exclude.
+Now problem with this implementation is that it's actually way too simple and that's because, later on we will have other query parameters, for example sort, for sorting functionality, or page for pagination, And so we need to make sure that we are not querying for these in our database. If we search page=2 then we will not get any results. Because there is no document in this collection where page is set to two. So, we only want to use this parameter(page=2) to implement pagination and not to actually query in the database.  
+
+So, we'll have to do is, to basically exclude these special field names from our query string before we actually do the filtering.  
+
+What we'll do for that:  
+First will create a **shallow copy of the request.query object**. Here to copy we need really a hard copy. We could just do like this const queryObj = req.query. Then if we would delete something from copied object(queryObj), we would also delete it from the request.query object. that's because in javascript we set a variable to another object, then that new variable will basically just be a reference to that original object. So we really need a hard copy here.  
+
+**In javascript, there's not really a built-in way of doing this**, but a very nice trick that we can use, since ES6, is to use first destructuring  and then we can simply create a new object out of that. Destructuring will basically take all the fields out of the object, and with the curly braces we simply create a new object like this: const queryObj = {...req.query};
+
+```js
+const queryObj = {...req.query}; // that's the copy
+```
+
+Than **we have to create an array of all the fields that we want to exclude.**  
+
+```js
 const excludedFields = ['page', 'sort', 'limit', 'fields'];
-- Next we need to remove all of these fields from our query object. in order to do that we'll loop over these fields and use delete operator and from the queryObj we want to delete the field with the name of element, if it exist in queryObj.
-- As we excluded all of things that are in excludedFields, so instead of using req.query object we will use our queryObj.
-Nor for this url:
-127.0.0.1:3000/api/v1/tours?difficulty=easy&page=2&sort=1&limit=10
-We are querying for all the documents that have a difficulty set to easy and ignoring all of other fields.
+```
 
-- But here's actually something more that we need to do in our code, in order to basically be able to implement these features in future videos. So, let's now learn about how queries actually work in Mongoose.
-This find method is going to return a query, So, Tour.find(queyObj); will return a query, and that's the reason why we can then chain other methods like we did in 2nd method to query like we chain where, equals etc.  
-?Now comes the import part:
-As soon as we actually await the result of the query, the query will then execute and comeback with the documents that actually match our query. So if we do like this:     const tours = await Tour.find(queryObj);
-Then there is no way to implementing sorting, or pagination, or all of other features, So, instead we'll have to do is to save this part hereTour.find(queryObj) into a query and then in the end, as soon as we chained all the methods to the query that we need to, only then by the end we can await that query. For example we're going to use the sort method, limit method and chain to that query. And that will be impossible to do if we await the result of the initial query right there. So, the way that we do is:
-query query = Tour.find(queryObj);
+Next we need to remove all of these fields from our query object. in order to do that we'll loop over these fields and use delete operator and from the queryObj we want to delete the field with the name of element, if it exist in queryObj.  
+As we excluded⤵ all of things that are in excludedFields, so instead of using req.query object we will use our queryObj.  
+Nor for this url:  
+_127.0.0.1:3000/api/v1/tours?difficulty=easy&page=2&sort=1&limit=10_  
+We are querying for all the documents that have a difficulty set to easy and ignoring all of other fields.  
+
+But here's actually something more that we need to do in our code, in order to basically be able to implement these features in future lectures. **So, let's now learn about how queries actually work in Mongoose.**  
+This **find method** is going to return a query, So, Tour.find(queyObj); will return a query, and that's the reason why we can then chain other methods like we did in 2nd method to query like we chain where, equals etc.  
+
+**Now comes the important part:**  
+As soon as we actually await the result of the query, the query will then execute and comeback with the documents that actually match our query. So if we do like this:     const tours = await Tour.find(queryObj);  
+Then there is no way to implementing sorting, or pagination, or all of other features, So, instead we'll have to do is to save this part here Tour.find(queryObj) into a query and then in the end, as soon as we chained all the methods to the query that we need to, only then by the end we can await that query. For example we're going to use the sort method, limit method and chain to that query. And that will be impossible to do if we await the result of the initial query right there. So, the way that we do is:
+
+```js
+const ery query = Tour.find(queryObj);
 const tours = await query
+Delete queryObj[field] 
+// To access an object's property we always use square brackets. her dot operator will not work
+```
 
-! delete queryObj[field]) // To access an object's property we always use square brackets. her dot operator will not work
+```js
 
--
-
-*/
 exports.getAllTours = async (req, res) => {
   // BUILDING QUERY
   // 1-A) Filtering
@@ -963,71 +994,88 @@ exports.getAllTours = async (req, res) => {
 const tours = await query;
 }
 
-/*
+```
 
-- lecture 095
-- Making the API Better_Advanced Filtering
+---
 
-- The filter feature that we have implemented right now already works great. In in this lecture we wanna take it to the next level by allowing some even more complex queries.
-- Right now a user can only filter the documents by setting one key equal to a value, right??? But now, we actually want to also implement the greater than, the >=, the >, the >= operators, instead of just having equal,
+### Advanced_Filtering
 
-? So what would the filter object would look like?
+The filter feature that we have implemented right now already works great. In in this lecture we wanna take it to the next level by allowing some even more complex queries.  
+Right now a user can only filter the documents by setting one key equal to a value, right??? But now, we actually want to also implement the greater than, the >=, the >, the >= operators, instead of just having equal,
+
+So what would the filter object would look like?
+
+```js
 {
   difficulty: 'easy',
   duration: {$gte: 5}
-}; So, this is how we would manually write the filter object for the query that we just specified.
-A standard way of writing a query string including these operators: 127.0.0.1:3000/api/v1/tours?difficulty=easy&duration[gte]=5
+}; 
+```
+
+So, this is how we would manually write the filter object for the query that we just specified.  
+A standard way of writing a query string including these operators: **127.0.0.1:3000/api/v1/tours?difficulty=easy&duration[gte]=5**  
 So, basically like this we have a third part to the key value pair, so we have the key, the value and also the operator. we use [] brackets in order to specify the operator. this is standard way.
+
+```js
 console.log(req.query);
 Now log look like:
 {
   difficulty: 'easy',
   duration: { gte: '5' },
 }
+```
+
 So, object the given by req.query is almost looks identical to the filter object that we wrote manually(few line above). the only difference in the filter object that we wrote manually have the mongodb operator sign($), So that's only thing that's missing in the object that's given by request.query. The solution for this is basically replace all the operator like gte, gt... with their correspondent mongodb operators, so basically adding dollar sign. Lets now implement that.
 
-- fist we convert object into a string
+Fist we convert object into a string  
+
+```js
 const queryStr = JSON.stringify(queryObj);
-- The once we want to replace: gte, gt, lte, lt,
-- There are couple of ways to replace but we gonna use regular expression here.
-queryStr = queryStr.replace(/\b(gte|gt|lte|lt\b/g, match => `$match`);  here back-slash b is because we only want to match these exact words, Imagine a word in which lt in it, we of curse don't want in that case. And at the end g flag means that it'll actually happen multiple times. so if we have tow, three operators.
-And a replace method also can accepts a callback which is very powerful, and this callback has as a first argument the matched word, or matched string, And we want to return from that callback the match string with $matched string. Code⬆⬆
-- Now finally set find method should not use th query object, instead JSON.parse(queryStr)
-const query = Tour.find(JSON.parse(queryStr));
-- if we do not have any operator in the query string then everything will work just fine. because if not find any operator there will be no replacement.
+```
 
-*/
+The once we want to replace: gte, gt, lte, lt,  
+There are couple of ways to replace but we gonna use regular expression here.  
 
-/*
+queryStr = queryStr.replace(/\b(gte|gt|lte|lt\b/g, match => `$match`);  
+Here back-slash b is because we only want to match these exact words, Imagine a word in which lt in it, we of curse don't want in that case. And at the end g flag means that it'll actually happen multiple times. so if we have tow, three operators.  
+And a **replace method** also can accepts a callback which is very powerful, and this callback has as a first argument the matched word, or matched string, And we want to return from that callback the match string with $matched string. Code⬆⬆
 
-- lecture 096
-- Making the API better_ SORTING
+Now finally set find method should not use th query object, instead JSON.parse(queryStr)  
+const query = Tour.find(JSON.parse(queryStr));  
+If we do not have any operator in the query string then everything will work just fine. because if not find any operator there will be no replacement.
 
-Let's now implement result sorting in order to enable our users to sort result based on a certain field that can be passed using the query string.
-? Remember, How we created queryObj and then excluded fields like sort, limits, page etc.
-! code ⬆⬆
+---
 
-- First will check for is they sort in query, If there is, then we want to actually sort the results based on the value.
-- One quick thing that we need to do, is to change this query of variable(query) from const to let
-- We want to sort on: req.query.sort because  we want to sort  based on value of sort, that will be in query.
+### SORTING
+
+Let's now implement result sorting in order to enable our users to sort result based on a certain field that can be passed using the query string.  
+Remember, How we created queryObj and then excluded fields like sort, limits, page etc.
+Code ⬆⬆
+
+First will check for is they sort in query, If there is, then we want to actually sort the results based on the value.  
+One quick thing that we need to do, is to change this query of variable(query) from const to let  
+We want to sort on: req.query.sort because  we want to sort  based on value of sort, that will be in query.  
 Remember: Tour.find() method will return a query. So, we stored that query object in query variable and then we can keep chaining more methods to it like we did sort here. - All methods that are available on documents created through the query class.
+
+```js
 if(req.query.sort) {
     query = query.sort(req.query.sort)
-} // Just using these codes we sorted them by the price in an ascending order, but we also sort them in descending order, just using ?sort=-price in url.
-- We can take it one step further, because we have many cases here which have the same price. But how are these results with the same price then order within them?
-In this case we want to rank them according to second criteria. So in case there is a tie, then we want to have a second field by which we can then sort where the first one is same.
+} 
+```
+
+Just using these codes we sorted them by the price in an ascending order, but we also sort them in descending order, just using ?sort=-price in url.
+
+We can take it one step further, because we have many cases here which have the same price. But how are these results with the same price then order within them?  
+In this case we want to rank them according to second criteria. So in case there is a tie, then we want to have a second field by which we can then sort where the first one is same.  
 In Mongoose that's quite easy.
-sort{'price ratingsAverage'} - We want sort first by price and then as a second criteria we use rating average. Now we replace comma, which is  in url, with space like this: ?sort=-price,ratingAverage
-const sortBy = req.query.sort.split(',').join(' ');
-query = query.sort(sortBy); First we have to split the sort value, from the url, by comma, This split method will give us an array of elements of string splitted with comma, and then we to join the array into string by space.  because here we want space.  
-- Just to finish let's add a default one. we do that by adding an else block. -In case the user doesn't specify any sort field in the url query string, we're still gonna add a sort to the query. By default we'll sort on base on created At field in descending order, so that the newest ones appear first.
+sort{'price ratingsAverage'} - We want sort first by price and then as a second criteria we use rating average. Now we replace comma, which is  in url, with space like this: ?sort=-price,ratingAverage  
+const sortBy = req.query.sort.split(',').join(' ');  
+query = query.sort(sortBy); First we have to split the sort value, from the url, by comma, This split method will give us an array of elements of string split with comma, and then we to join the array into string by space. because here we want space.  
+Just to finish let's add a default one. we do that by adding an else block. -In case the user doesn't specify any sort field in the url query string, we're still gonna add a sort to the query. By default we'll sort on base on created At field in descending order, so that the newest ones appear first.
 
-*/
+---
 
-/*
-
-- lecture 097
-- Making the API Better_ LIMITING FIELDS
+### LIMITING FIELDS
 
 Next feature in our API, we have field limiting, so basically, in order to allow clients to choose which fields they want to get back inn the response. So, for a client, it's always ideal to receive as little data as possible, in order to reduce the bandwidth that is consumed with each request. And that's of course especially true, when we have really data-heavy data sets. It's very nice feature to allow the API users to only request some of the fields.
 We specify limits like this in url:
