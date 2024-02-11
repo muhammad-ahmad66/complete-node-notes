@@ -32,6 +32,13 @@
        5. [Aliasing](#aliasing)
    13. [Refactoring_API_Features](#refactoring_api_features)
    14. [Aggregation_Pipeline_Matching_And_Grouping](#aggregation_pipeline_matching_and_grouping)
+   15. [Aggregation_Pipeline_Unwinding_And_Projection](#aggregation_pipeline_unwinding_and_projection)
+   16. [Virtual_Properties](#virtual_properties)
+   17. [Document_Middleware](#document_middleware)
+   18. [Query_Middleware](#query_middleware)
+   19. [Aggregation_Middleware](#aggregation_middleware)
+   20. [Data_Validation_Built-In-Validators](#data_validation_built-in-validators)
+   21. [Data_Validating__Custom_Validators](#data_validating__custom_validators)
 
 ## MongoDB_Fundamentals
 
@@ -1322,7 +1329,7 @@ The aggregation pipeline is a **MongoDB feature** But mongoose gives us access t
 The aggregation pipeline is bit like a regular query and so using the aggregation pipeline it's just a like doing a regular query. The difference is in aggregation we can manipulate the data in a couple of different steps. So lets's now actually define these steps.
 
 **For that we pass an array of so-called stages.** -An array with lot of `stages`  
-And then the documents passes though these stages one by one, step by step in the defined sequence. So, each of the element in this array will be one of the stages. and there are ton of different stages that we can choose from, but we'll use most common ones.
+And then the **documents passes though these stages one by one, step by step in the defined sequence**. So, each of the element in this array will be one of the stages. and there are ton of different stages that we can choose from, but we'll use most common ones.
 
 `How we define stages?`  
 We will start with match. `$match stage` is basically to select or to filter certain documents. It's very simple, it's just like a filter object in MongoDB.
@@ -1340,7 +1347,7 @@ const stats = Tour.aggregate([
 
 That's the first stage, And usually this **\$match stage is just a preliminary/initial stage to then prepare for the next stages which is ahead**.
 
-Next one is the `$group stage`. As the names says this group allows us to group documents together, basically using **accumulators**. And an accumulator is for example calculating an average If we've five tours, each of them has a rating we can then calculate the average rating using group. let's do that>  
+Next one is the `$group stage`. As the names says this group allows us to group documents together, basically using **accumulators**. And an accumulator is for example calculating an average If we've five tours, each of them has a rating we can then calculate the average rating using group. let's do that  
 First thing that we need to always specify is the \_id, because this is where we're gonna specify what we want to group by. Now we specify null, because we want to have everything in one group, so that we can calculate the statistics for all of the tours together and not separate it by groups. later we'll group, for example we can group the difficulty, and the calculate the average for the easy tours, medium tours, and hard tours. We can group by one of our fields, that field we gonna specify here in place of id.
 
 Now simply calculate average rating. For average we'll use `$avg`, which is yet another mongodb operator. _**avgRating: {$avg: '$ratingsAverage'}**_ as a value of `$avg` we need to specify the field, for which we want want to calculate the average. Also we'll find averagePrice, and also min and max price using `$min & $max operators`.  
@@ -1372,8 +1379,8 @@ Now we've an output:
 ```
 
 Now we calculate the total number of ratings and also the total number of tours.  
-No of Ratings:: **_numRatings: {$sum: '$ratingsQuantity'}_**  
-No of Tours:: numTours: **_{\$sum: 1}_**, Here each of document the sum operator will add 1 to the numTours variable.
+No. of Ratings:: **_numRatings: {$sum: '$ratingsQuantity'}_**  
+No. of Tours:: numTours: **_{\$sum: 1}_**, Here each of document the sum operator will add 1 to the numTours variable.
 
 Let's now take it to the next level, by grouping our results for different fields. Let's start with difficulty. we simply put the name of the field as a value of \_id: '\`$difficulty`', with dollar sign.  
   Now we have a 3 results for each of tree difficulties. Like this:
@@ -1440,7 +1447,6 @@ $match:{_id: {$ne: 'EASY'}}
 
 In this example we repeat `$match stage`, and here \_id is difficulty, because we already set id in group stage, and `$ne` operator means not-equal.
 
-
 ```js
 exports.getTourStats = async (req, res) => {
   try {
@@ -1487,76 +1493,161 @@ exports.getTourStats = async (req, res) => {
 };
 ```
 
-- lecture 102
-- Aggregation Pipeline\_ Unwinding and Projection
+---
 
-? In this lecture we are gonna solve real business problem using aggregation.
+## `Aggregation_Pipeline_Unwinding_And_Projection`
+
+In this lecture we are gonna solve real business problem using aggregation.  
 let's imagine that we're really developing this application for the Natours company, and they ask us to implement a function to calculate the busiest month of a given year. So, basically by calculating how many tours start in each of the month of the given year. And the company really needs this function to prepare accordingly for these tours, like to hire tour guides or to buy the equipment and handle all the stuff like that. This is gonna be a real challenge.
 
-- let's start by creating the function getMonthlyPlan
-- Also implement the route in tourRoutes file.
-- Enabling to pass a year in the url, let's use a url parameter for that.:
+Let's start by creating the function getMonthlyPlan  
+Also implement the route in tourRoutes file.  
 
-- All of tours(documents) have a starting dates, So, these dates is actually need as a starting point to create this function(aggregation pipeline). Because remember, we want to count how many tours there are for each of the months in a given year. Let's say that we're analyzing 2021, So, if we want to add all of these tours together the easiest way would basically be to have one tour for each dates, Right now we've multiple tours in same document. We can do that using aggregation pipeline. There is stage for doing exactly want we want, and that is called unwind.
-- \$unwind will do basically deconstruct an array field from the input documents and then output one document for each element of the array. Basically we want to have one tour for each of these dates in the array. This stage can be really useful for so many cases.
-- The field with the array that we want to unwind is start dates.
-- Now we have one document for each date. as we specify here. Instead of nine now we have 27 documents, because we every document had 3 documents. THAT'S THE FIRST STAGE
+```js
+router.route('/monthly-plan/:year').get(tourController.getMonthlyPlan);
+```
 
-- NOW let's actually go ahead and select the documents for the year that was passed in the url. like: /api/v1/tours/monthly-plan/2021
-- For that we use match stage. Remember match is basically to select documents.
-- on startDates field, we want the date, basically greater than january 1st of the selected year(2021), and less than january 1st of next year(2022).
-- In mongoDB compression between dates will works perfectly fine.
-- To compare we built two new Dates, and compare them.
+Enabling to pass a year in the url, let's use a url parameter for that: /api/v1/tours/monthly-plan/2021  
+
+```javascript
+const year = req.params.year * 1; // 2021
+```
+
+All of tours(documents) have a starting dates, So, these dates is actually need as a starting point to create this function(aggregation pipeline). Because remember, we want to count how many tours there are for each of the months in a given year. Let's say that we're analyzing 2021, So, if we want to add all of these tours together the easiest way would basically be to have one tour for each dates, Right now we've multiple tours in same document. We can do that using aggregation pipeline. There is stage for doing exactly what we want, and that is called **unwind**.  
+
+**`$unwind` will do basically deconstruct an array field from the input documents and then output one document for each element of the array.** Basically we want to have one tour for each of these dates in the array. This stage can be really useful for so many cases.
+
+- The field with the array that we want to unwind is startDates.
+
+    ```javascript
+    {
+      $unwind: '$startDates'
+    },
+    ```
+
+    Now we have one document for each date, as we specify here. Instead of nine now we have 27 documents, because every document had 3 documents. THAT'S THE FIRST STAGE
+
+- Now let's actually go ahead and select the documents for the year that was passed in the url. like: /api/v1/tours/monthly-plan/2021  
+    For that we use $match stage. Remember $match is basically to select documents.  
+    On startDates field, we want the date, basically greater than january 1st of the selected year(2021), and less than january 1st of next year(2022).  
+    In mongoDB compression between dates will works perfectly fine.  
+    To compare we built two new Dates, and compare them.  
+
+    ```JavaScript
+    {
+      $match: {
+        startDates: {
+          $gte: new Date(`${year}-01-01`),
+          $lte: new Date(`${year}-12-31`)
+        }
+      }
+    },
+    ```
 
 - NEXT UP, We have group stage.
-- We want to group them by the months, But currently we simply have the entire date, with the year, month and date, and even the hour. We only want month.
-- Let's use just another magical mongoDB operator. which is
-  ? \$month
-  Returns the month of a date as a number between 1 and 12. It'll basically extract the month out of our date. And there are lots of of other operators. SEE MONGODB DOCS.
+    We want to group them by the months, But currently we simply have the entire date, with the year, month and date, and even the hour. We only want month.  
+    Let's use just another magical mongoDB operator. which is `$month`  
 
-! <https://www.mongodb.com/docs/manual/reference/operator/aggregation/month/> VISIT THIS MONGODB DOCS, TO READ MORE ABOUT OPERATORS.
+    ```JavaScript
+    {
+      $group: {
+        _id: { $month: '$startDates' },
+        numTourStarts: { $sum: 1 },
+        tours: { $push: '$name' }
+      }
+    },
+    ```
 
-- We are grouping it by month. And now the real information for for each of the month is how many tours start in that month. For that all we're gonna do is basically count the amount of tours that have a certain month.
-- We not only require how many tours but also which tours?
-- if we want information about which tours that should be an array. Because how else would we specify two or three different tours in one field, And so basically we want to create an array, and we do that by using push operator and then we're gonna push into that array as each document goes through this pipeline is simply the name of the field.
-- Now we'll add new field for the month as value id, using \$addFields stage. Because before we have like this:
-  {
-  "\_id": 10,
-  "numTourStarts": 2,
-  "tours": [
-  "The Forest Hiker",
-  "The Star Gazer"
-  ],
-  }, WE want month field as well with the value of_id, because here the value of \_id is actual number of month.
-  NOW WE HAVE LIKE THIS:
-  {
-  "\_id": 10,
-  "numTourStarts": 2,
-  "tours": [
-  "The Forest Hiker",
-  "The Star Gazer"
-  ],
-  "month": 10
-  },
+    **$month** Returns the month of a date as a number between 1 and 12. It'll basically extract the month out of our date. And there are lots of of other operators. _**SEE MONGODB DOCS**_
 
-- NEXT UP, Let's get rid of \_id field. as we copied it's value to month's field. so need of_id more. For that we use $project stage. We simply give each of the field names a zero or a one. If we give any field zero then that one no longer shows up. If we put one then it would show up.
-$project: {
-  \_id: 0
+    *<https://www.mongodb.com/docs/manual/reference/operator/aggregation/month/> VISIT THIS MONGODB DOCS, TO READ MORE ABOUT OPERATORS.*
+
+- We are grouping it by month. And now the real information for for each of the month is how many tours start in that month. For that all we're gonna do is basically count the amount of tours that have a certain month.  
+    We not only require how many tours but also which tours.  
+    If we want information about which tours that should be an array. Because how else would we specify two or three different tours in one field, And so basically we want to create an array, and we do that by using **$push operator** and then we're gonna push into that array as each document goes through this pipeline is simply the name of the field.
+
+    ```JavaScript
+    {
+      $group: {
+        _id: { $month: '$startDates' },
+        numTourStarts: { $sum: 1 },
+        tours: { $push: '$name' }
+      }
+    },
+    ```
+
+- Now we'll add new field for the month as value id, using **$addFields stage**. Because before we have like this:
+
+    ```js
+      {
+      "_id": 10,
+      "numTourStarts": 2,
+      "tours": [
+      "The Forest Hiker",
+      "The Star Gazer"
+      ],
+      }, 
+    ```
+  
+    WE want month field as well with the value of_id, because here the value of \_id is actual number of month.  
+
+    ```js
+    {
+      $addFields: { month: '$_id' }
+    },
+    ```
+
+    NOW WE HAVE LIKE THIS:
+
+    ```js
+    {
+    "_id": 10,
+    "numTourStarts": 2,
+    "tours": [
+    "The Forest Hiker",
+    "The Star Gazer"
+    ],
+    "month": 10
+    },
+  ```
+
+- NEXT UP, Let's get rid of \_id field. As we copied it's value to month's field. so no need of _id more. For that we use **$project stage**. We simply give each of the field names a zero or a one. If we give any field zero then that one no longer shows up. If we put one then it would show up.
+
+```js
+{
+  $project: {
+    _id: 0
   }
+},
+```
 
-- Now we sort the documents by the number of tours. corresponding to intended field we put 1 for ascending and -1 to descending.
+- Now we use **$sort stage** sort the documents by the number of tours. corresponding to intended field we put 1 for ascending and -1 to descending.  
 
-- Finally we use limit stage, and this one is exactly the same as limit in the query. So basically gonna allow us to only have six documents.
+```js
+{
+  $sort: { numTourStarts: -1 }
+},
+```
 
-\*/
+- Finally we use **$limit stage**, and this one is exactly the same as limit in the query. So basically gonna allow us to only have six documents.
 
+```js
+{
+  $limit: 12
+}
+
+```
+
+### `Full code of getMonthlyPlan Function`
+
+```js
 exports.getMonthlyPlan = async (req, res) => {
-try{
-const year = req.params.year \* 1;
+  try {
+    const year = req.params.year * 1; // 2021
 
     const plan = await Tour.aggregate([
       {
-        $unwind: '$startDates',
+        $unwind: '$startDates'
       },
       {
         $match: {
@@ -1568,13 +1659,13 @@ const year = req.params.year \* 1;
       },
       {
         $group: {
-          _id: { $month: '$startDates'},
-          numTourStarts: {$sum: 1},
-          tours: {$push: '$name'}
+          _id: { $month: '$startDates' },
+          numTourStarts: { $sum: 1 },
+          tours: { $push: '$name' }
         }
       },
       {
-        $addFields:{month: '$_id'}
+        $addFields: { month: '$_id' }
       },
       {
         $project: {
@@ -1582,51 +1673,47 @@ const year = req.params.year \* 1;
         }
       },
       {
-        $sort: {
-          numTourStarts: 1
-        }
+        $sort: { numTourStarts: -1 }
       },
       {
-        $limit: 6
+        $limit: 12
       }
-
-    ])
+    ]);
 
     res.status(200).json({
       status: 'success',
       data: {
         plan
       }
-    })
+    });
+  } catch (err) {
+    res.status(404).json({
+      status: 'fail',
+      message: err
+    });
+  }
+};
 
-}catch(err){
-res.status(404).json({
-status: 'fail',
-message: err
-});
-}
-}
+```
 
-/\*
+---
 
-- lecture 103
-- Virtual Properties
+## `Virtual_Properties`
 
-Let's return to our data model and learn some super useful features that Mongoose offers us in order to model our data. And the first one we're gonna talk about are virtual properties.
-let's open up tour model file.
+Let's return to our data model and learn some super useful features that Mongoose offers us in order to model our data. And the first one we're gonna talk about are **virtual properties**.  
+*let's open up tour model file.*  
 
-- Virtual properties are basically fields that we can define on our schema but that will be persisted. So, they will not be saved into the database in order to save us some space there. And most of the time we want to really save our data to the database, but virtual properties make a lot of sense for fields that can be derived from one another. For example a conversion from miles to kilometers, it doesn't make sense to store these two fields in a database if we can easily convert one to the other.
-  Let's now define a virtual property that contains the tour duration in weeks. So, that's a field that we can very easily convert from the duration that we already have in days.
-  so here how it works also in tourModel.js file.
-  SchemaName.virtual(), and in virtual we pass a virtual property in string. and then on there we need to define get() method, that's just because this virtual property will be created each time that we get some data out of database. So this get function is called a getter. Now in here we pass a function, actually a callback function, which should not be arrow function, We use here regular function here because remember, an arrow function does not get it's own this keyword. In here we need this keyword. The this keyword in this case is gonna be pointing to the current document.
-  duration / 7 By using this we convert duration(days) into weeks.
-- Now we need to explicitly define virtual properties in our schema. In mongoose.Schema() we can pass in not only the object with the schema definition itself, but also an object for the schema options. So, let's add that in mongoose.Schema().
-  We need to specify here {toJSON: { virtual: true}, toObject: {virtual: true}}
-  It means each time the data output as a json we want virtual to be true, basically virtual should be part of the output. Also for data outputs as an object.
+- **Virtual properties are basically fields that we can define on our schema but that will not be persisted.** So, they will not be saved into the database in order to save us some space there. And most of the time we want to really save our data to the database, but virtual properties make a lot of sense for fields that can be derived from one another. For example a conversion from miles to kilometers, it doesn't make sense to store these two fields in a database if we can easily convert one to the other.  
+    Let's now define a virtual property that contains the tour duration in weeks. So, that's a field that we can very easily convert from the duration that we already have in days.  
+    so here how it works also in tourModel.js file.  
+    SchemaName.virtual(), and in virtual we pass a virtual property in string. and then on there we need to define get() method, that's just because this virtual property will be created each time that we get some data out of database. So this get function is called a getter. Now in here we pass a function, actually a callback function, which should not be arrow function, We use here regular function here because remember, an arrow function does not get it's own **this keyword**. In here we need this keyword. **The this keyword in this case is gonna be pointing to the current document.**  
+    duration / 7 By using this we convert duration(days) into weeks.
+- Now we need to explicitly define virtual properties in our schema. In mongoose.Schema() we can pass in not only the object with the schema definition itself, but also an object for the schema options. So, let's add that in mongoose.Schema().  
+    We need to specify here {toJSON: { virtual: true}, toObject: {virtual: true}}  
+    It means each time the data output as a json we want virtual to be true, basically virtual should be part of the output. Also for data outputs as an object.  
 - One thing should keep in mind that we cannot use virtual properties in a query, because they are technically not a part of the database. So, we can not say tour.find(durationWeeks === 1 );
 
-\*/
-
+```js
 const tourSchema = new mongoose.Schema({
 // Schema definitions....
 }, {
@@ -1638,38 +1725,48 @@ toObject: {virtual: true}
 tourSchema.virtual('durationWeeks').get(function(){
 return this.duration / 7;
 })
+```
 
-/\*
+---
 
-- lecture 104
-- Document Middleware
+## `Document_Middleware`
 
-Just like Express, Mongoose also has the concept of middleware. So, let's now learn about the first type middleware, which is document middleware.
-Like express we can use mongoose middleware to make something happen between two events. For example Each time a new document is saved to the database, we can run a function between the save command is issued and the actual saving of the document, or also after the actual saving. And that's the reason why Mongoose middleware also called pre and post hooks. So again, because we can define functions to run before or after a certain event, like saving a document to database. So middleware is an absolutely fundamental concept in Mongoose, just like in Express. And there are tons of possibilities, and use cases for middleware, and we're gonna be using middleware all the time in this project.
-There are four types of middleware in Mongoose: document, query, aggregation and model middleware.
-In this lecture we are gonna learn about document middleware. Which is middleware that can act on the currently processed document. Just like the virtual properties we define a middleware on the schema, [In tourModel file]
+Just like Express, Mongoose also has the concept of middleware. So, let's now learn about the first type middleware, which is document middleware.  
+**Like express we can use mongoose middleware to make something happen between two events.** For example Each time a new document is saved to the database, we can run a function between the save command is issued and the actual saving of the document, or also after the actual saving. And that's the reason why Mongoose middleware also called **pre and post hooks.** So again, because we can define functions to run before or after a certain event, like saving a document to database. So middleware is an absolutely fundamental concept in Mongoose, just like in Express. And there are tons of possibilities, and use cases for middleware, and we're gonna be using middleware all the time in this project.  
+
+*There are four types of middleware in Mongoose: **document**, **query**, **aggregation** and **model** middleware.*
+
+In this lecture we are gonna learn about **document middleware**. Which is middleware that can act on the currently processed document. Just like the virtual properties we define a middleware on the schema, [In tourModel file]  
+
+```js
 tourSchema.pre('save', function(){
 console.log(this);
 })
-This is pre middleware, which gonna run before an actual event. and that event in this case is the save event. And so this callback function that we're gonna define here next, to the 'save', will be called before an actual document is saved to the database.
-! This code runs before the .save() command and the .create() command, but not on .insertMany() command. Insert many will not trigger the save middleware.
+```
 
-- In a save middleware the 'this' keyword is gonna point to the currently processed document. And that is the reason it's called document middleware. In this function we have access to the document that is being processed, in this case the document that is being saved.
-- let's check by creating a new tour by post method, remember it only trigger with create document or save.
-- yeah we logged the document. This is right before actually saving the data. So we can act to the data before save into the database. So, let's perform some actions.
-- We'll create a slug for each of these documents. So, remember how we created a slug for each of the products that we had in the store. We used slugify package. So, slug is basically just a string, that we can put in the url, usually based on some string like the name. In this we will create a slug based on the tour name.
-  ?- install slugify package npm i slugify, and then require it in tourModel.js file.
+This is **Pre Middleware**, which gonna run before an actual event. and that event in this case is the save event. And so this callback function that we're gonna define here next, to the 'save', will be called before an actual document is saved to the database.  
 
+***This code⤴ runs before the .save() command and the .create() command, but not on .insertMany() command. Insert many will not trigger the save middleware.***
+
+- In a save middleware the **'this' keyword is gonna point to the currently processed document.** And that is the reason it's called document middleware. In this function we have access to the document that is being processed, in this case the document that is being saved.  
+    Let's check by creating a new tour by post method, remember it only trigger with create document or save.  
+    Yeah we logged the document. This is right before actually saving the data. So we can act to the data before save into the database. So, let's perform some actions.
+
+We'll create a slug for each of these documents. So, remember how we created a slug for each of the products that we had in the store. **We used slugify package.** So, slug is basically just a string, that we can put in the url, usually based on some string like the name. In this we will create a slug based on the tour name.  
+*Install slugify package npm i slugify, and then require it in tourModel.js file.*
+
+```js
 this.slug = slugify(this.name, {lower: true})
+```
 
-here we added a slug to that particular document with it's name, and as a second parameter we passed an options like every letter should be in lowercase.
+Here we added a slug to that particular document with it's name, and as a second parameter we passed an options like every letter should be in lowercase.
 
-? Just like in express we also has the next function in mongoose middleware, basically to call the next in the stack.
+Just like in express we also has the next function in mongoose middleware, basically to call the next in the stack.  
+We have to put the slug property in the schema.
 
-- We have to put the slug property in the schema.
+**`Pre Save Hook`**
 
-\*/
-
+```js
 // pre save hook
 tourSchema.pre('save', function (next) {
 // console.log(this); // Remember 'this' is the currently processed document.
@@ -1677,19 +1774,31 @@ tourSchema.pre('save', function (next) {
 this.slug = slugify(this.name, {lower: true})
 next();
 })
+```
 
-/\*
-Let's now very quickly experiment, with a post middleware.
+---
 
-- In the post middleware, has access not only to next, but also to the document that was just saved to the database, in the callback function.
-- post middleware functions are executed after all the pre middleware functions have completed, So, in here we actually no longer have the 'this' keyword, but instead we have the basically finished document in callback function as a parameter.
-- Although here we've only one post middleware so need of next(), but it's best practice to always use next()
+Let's now very quickly experiment with a **Post Middleware**.
 
-- We can have multiple pre or post middlewares for the same hook, And hook in this case is this 'save' post/pre middlewares as a parameter, - We call first one pre save hook and now second one post save hook. this is terminology. Some call it middleware can some call it hooks.
+**In the post middleware, we have not only access to the next, but also to the document that was just saved to the database, in the callback function.**  
+Post middleware functions are executed after all the pre middleware functions have completed, So, in here we actually **no longer have the 'this' keyword**, but instead we have the basically **finished document in callback function as a parameter**.
 
-Conclusion: We can have middleware running before and after a certain event. And in the case of document middleware, that event is usually the save event. And then in the middleware function itself, we have access to the this keyword, which is gonna point at the currently being saved document. And that this save middleware only runs for the save, and create mongoose methods. It not gonna run for insertMany and also for findOne and update or findById and also for findByIdAndUpdate,
+Although here⤵ we've only one post middleware so no need of next(), but it's best practice to always use next()
 
-\*/
+```js
+tourSchema.post('save', function(doc, next) {
+console.log(doc); // Finished document.
+next();  
+})
+```
+
+We can have multiple pre or post middlewares for the same hook, And hook in this case is this 'save' post/pre middlewares as a parameter, - We call first one **pre save hook** and now second one **post save hook**. this is terminology. Some call it middleware can some call it hooks.
+
+### `Conclusion:`
+
+**We can have middleware running before and after a certain event. And in the case of document middleware, that event is usually the save event. And then in the middleware function itself, we have access to the this keyword, which is gonna point at the currently being saved document. And that this save middleware only runs for the save, and create mongoose methods. It not gonna run for insertMany and also for findOne and update or findById and also for findByIdAndUpdate,**
+
+```js
 // PRE SAVE HOOK / MIDDLEWARE
 tourSchema.pre('save', function (next) {
 this.slug = slugify(this.name, {lower: true})
@@ -1707,37 +1816,56 @@ console.log(doc); // Finished document.
 next();  
 })
 
-/\*
+```
 
-- lecture 105
-- Query Middleware
-  let's take about second type of mongoose middleware, which is query middleware.
+---
 
-- As the name says, query middleware query middleware allows us to run functions before or after a certain query is executed.
-  So let's now add a pre-find hook, So basically a middleware that is gonna run before any find query is executed.
-- It looks exactly like the other middlewares or the other pre hooks, The only difference is really this 'find' hook, which will make this query middleware and not document middleware. And the big difference here that the this keyword will no point at the current query, not at the current document, because we're not really processing any documents here.
-- The use case / action that we're gonna do here is: let's suppose that we can have secret tours in our database, like for tours that are only offered internally, or for a very small, like for VIP group of people, and the public shouldn't know about. Since these tours are secret tours we don not want the secret tours to ever appear in the result outputs. We're gonna to create a secret tour field and then query only for tours that are not secret.
-- we added secretTour field in the schema. and type will be Boolean, true if it secret and false if it not.
-  secretTour: {
+## `Query_Middleware`
+
+_Let's take about second type of mongoose middleware, which is query middleware._  
+
+As the name says, **Query Middleware allows us to run functions before or after a certain query is executed.**  
+So let's now add a pre-find hook, So basically a middleware that is gonna run before any find query is executed.
+
+It looks exactly like the other middlewares or the other pre hooks, The only difference is really this 'find' hook, which will make this query middleware and not document middleware. And the big difference here that **the this keyword will now point at the current query, not at the current document**, because we're not really processing any documents here.
+
+The use case / action that we're gonna do here is: let's suppose that we can have secret tours in our database, like for tours that are only offered internally, or for a very small, like for VIP group of people, and the public shouldn't know about. Since these tours are secret tours we do not want the secret tours to ever appear in the result outputs. We're gonna to create a secret tour field and then query only for tours that are not secret.
+
+we added secretTour field in the schema. and type will be Boolean, true if it secret and false if it not.  
+
+```js
+// A field added in Tour Schema
+secretTour: {
   type: Boolean,
   default: false
   }
+```
 
-- Next up create a secret tour with post method.
-- Let's now execute the query, keep in mind 'this' keyword here is now a query object. So we can chain all of the methods that we have for queries.
-- lets chain find method and select all the documents where secretTour is not true,
-- Now we have all the tours that are not secret, Why? What's happening?
-  We create a query using tour.find then we chain all the methods and then execute that query, all of these are in tourController.js file, But before it actually is executed, our pre-find middleware is executed, it's executed because it is find just like there in the tourController.js file(Tour.find()), So, we're creating a find query, and so therefor the find hook is then executed. Since it's query middleware the 'this' keyword points to the query. And so, to that query we can then chain yet another find method, and in there, we filter out the secretTour using filtering object that's available for every find method.
-- Now there is one thing, need to fix here, Because right now this middleware is running for find() only, but not for findOne. If we get by getTour method using it's(secretTour) id, then it's giving the secret tour. It means our middleware is not running on findOne command. That's because the handler function for this(getTour) route is by using findById, which behind the scene is findOne(), and so it's different from find(). So, we need to specify the same middleware also for findOne.
-  There are two ways of doing that. The first one is simply go ahead, copy the code and then put define pre-hook for findOne also. but that's not really good. So Instead we're gonna use regular expression. and that's quite easy.
-  Remember a regular expression starts and ends with a slash. We'll say in regular function that the middleware should be executed not only for find, but all the commands that start with the name find. like for findOne, findOneAndDelete, findOneAndUpdate, etc
+Next up create a secret tour with post method.  
+Let's now execute the query, keep in mind 'this' keyword here is now a query object. So we can chain all of the methods that we have for queries.  
+Lets chain find method and select all the documents where secretTour is not true.  
 
-\*/
-
+```javascript
 tourSchema.pre('find', function(next){
 this.find({secretTour: {\$ne: true}})
 next();
 })
+```
+
+Now we have all the tours that are not secret, Why? What's happening?  
+We create a query using tour.find then we chain all the methods and then execute that query, all of these are in tourController.js file, But before it actually is executed, our pre-find middleware is executed, it's executed because it is find just like there in the tourController.js file(Tour.find()), So, we're creating a find query, and so therefor the find hook is then executed. Since it's query middleware the 'this' keyword points to the query. And so, to that query we can then chain yet another find method, and in there, we filter out the secretTour using filtering object that's available for every find method.
+
+Now there is one thing, need to fix here, Because right now this middleware is running for find() only, but not for findOne, or findOneAndUpdate etc. If we get by getTour method using it's(secretTour) id, then it's giving the secret tour. It means our middleware is not running on findOne command. That's because the handler function for this(getTour) route is by using findById, which behind the scene is findOne(), and so it's different from find(). So, we need to specify the same middleware also for findOne.  
+
+There are two ways of doing that. The first one is simply go ahead, copy the code and then put define pre-hook for findOne also. but that's not really good. So **Instead we're gonna use Regular Expression**. and that's quite easy.  
+*Remember a regular expression starts and ends with a slash. We'll say in regular function that the middleware should be executed not only for find, but all the commands that start with the name find. like for findOne, findOneAndDelete, findOneAndUpdate, etc*
+
+```js
+
+tourSchema.pre('find', function(next){
+this.find({secretTour: {\$ne: true}})
+next();
+}) // This is not working with findOne...
 
 // FIRST WAY:
 tourSchema.pre('findOne', function(next){
@@ -1745,58 +1873,75 @@ this.find({secretTour: {\$ne: true}})
 next();
 })
 
-// SECOND WAY:
+// SECOND WAY: using RE
 tourSchema.pre(/^find/, function(next){
 this.find({secretTour: {\$ne: true}})
 this.start = Data.now();
 next();
 })
 
-// ! SEE MONGOOSE DOCUMENTATION ABOUT MIDDLEWARE AND IT'S TYPES
-// Because document middleware runs not only for save but in fact it can also run for others like remove, or for validate, BUT usually we use only save.
-// Now query Middleware can run for all of these query function: count, deleteMany, deleteOne, find, findOne, findOneAndDelete/Remove/Update, remove, update, updateOne, updateMany
+```
 
-/\*
-Let's now also set a post middleware for find. Remember this middleware will run after the query has already executed. So, therefor it can have access to the document that were returned.
+***SEE MONGOOSE DOCUMENTATION ABOUT MIDDLEWARE AND IT'S TYPES.***
 
-- lets create a clock to measure how long it takes to execute the current query.
-  ?How we do that?
-  It's quite simple, we'll set a property onto the 'this' object in pre middleware. because this query object is really just a regular object, because this query in pre middleware function is just a regular object. we can set any object property on it. So here we can say this.start = Data.now(); // will set current time in milliseconds.
-  And in the post middleware, we gonna run after the query has executed, we can then subtract the current time minus start time.
+*Because document middleware runs not only for save but in fact it can also run for others like remove, or for validate, BUT usually we use only save.*  
+*Now query Middleware can run for all of these query function: count, deleteMany, deleteOne, find, findOne, findOneAndDelete/Remove/Update, remove, update, updateOne, updateMany.*
 
-\*/
+Let's now also set a post middleware for find. **Remember this middleware will run after the query has already executed. So, therefor it can have access to the document that were returned.**
+
+Lets create a clock to measure how long it takes to execute the current query.  
+**How we do that?**  
+It's quite simple, we'll set a property onto the 'this' object in pre middleware. because this query object is really just a regular object, because this query in pre middleware function is just a regular object. we can set any object property on it. So here we can say this.start = Data.now(); // will set current time in milliseconds.  
+And in the post middleware, we gonna run after the query has executed, we can then subtract the current time minus start time.
+
+```js
+// Pre Find Hook
+tourSchema.pre(/^find/, function(next) {
+  this.find({ secretTour: { $ne: true } });
+
+  this.start = Date.now(); // added start to this object
+  next();
+});
+
+// Post Find Hook
 tourSchema.post(/^find/, function(docs, next){
 console.log(`Query took ${Date.now() - docs.start} milliseconds!`)
 console.log(docs);
 next()
 })
+```
 
-/\*
+---
 
-- lecture 106
-- Aggregation Middleware
+## Aggregation_Middleware
 
-The last middleware that we're gonna talk about is aggregation middleware, Aggregation middleware allows us to add hooks before and after an aggregation happens. So let's now continue with our previous example where we did hide the secret tours from the queries, now in an aggregation the secret tours are still being used, We also want to exclude the secret tour in the aggregation.
-See getTourStats in tourController.js, where we first used aggregation. We could do here, in the \$match state simple exclude the secret tours that are true. And then we also will do same thing in other aggregation that we have, in all the aggregations. that's not a good idea.
+The last middleware that we're gonna talk about is aggregation middleware, **Aggregation middleware allows us to add hooks before and after an aggregation happens.** So let's now continue with our previous example where we did hide the secret tours from the queries, now in an aggregation the secret tours are still being used, We also want to exclude the secret tour in the aggregation.  
+See getTourStats in tourController.js, where we first used aggregation. We could do here, in the \$match state simple exclude the secret tours that are true. And then we also will do same thing in other aggregation that we have, in all the aggregations. that's not a good idea.  
 Let's simply exclude it right at the model level, So,lets add aggregation middleware. we want to happen this before the execution of middleware so we use pre.
 
-! REMEMBER:
-In query middleware the this keyword will point to the current query, and In document middleware the this keyword points to the current document. And in Aggregation object the this keyword going to point to the current aggregation object.
+***`REMEMBER:`***  
+*In query middleware the this keyword will point to the current query, and In document middleware the this keyword points to the current document. And in Aggregation object the this keyword going to point to the current aggregation object.*
 
+```js
 tourSchema.pre('aggregate', function (next) {
 console.log(this.pipeline()); // this'll log pipeline of current aggregation. which is an array.
 next();
 });
+```
 
-- Now in order to filter out the secret tours, we have to add another match stage at the beginning of this pipeline array.
-  As aggregation.pipeline() gives an array, So, how we add and element at beginning of an array. for that we use unshift.
-  We want to add just another stage($match) at the beginning of the array
-this.pipeline().unshift({$match: {secretTour: {\$ne: true}}}); // It'll remove all the document all the tours which has secretTour to true.
+Now in order to filter out the secret tours, we have to add another match stage at the beginning of this pipeline array.
+As aggregation.pipeline() gives an array, So, how we add and element at beginning of an array. for that we use unshift.  
+We want to add just another stage($match) at the beginning of the array.
 
-? We are not talking about model middleware, because it's really not that important.
+```js
+this.pipeline().unshift({$match: {secretTour: {$ne: true}}}); 
+// It'll remove all the document all the tours which has secretTour to true.
+```
+
+We are not talking about model middleware, because it's really not that important.  
 There is indeed other cool stuff that we can do with models, for example implementing instance methods which are methods that will be available on every document after being queried, and that again can be quite handy, will do that later.
-\*/
 
+```js
 // AGGREGATION MIDDLEWARE
 tourSchema.pre('aggregate', function (next) {
 this.pipeline().unshift({$match: {secretTour: {$ne: true}}});
@@ -1804,178 +1949,142 @@ this.pipeline().unshift({$match: {secretTour: {$ne: true}}});
 console.log(this.pipeline()); // this'll log pipeline of current aggregation, which is an array
 next();
 });
+```
 
-/\*
+---
 
-- lecture 107
-- Data Validation Built-In-Validators
+## `Data_Validation_Built-In-Validators`
 
-Mongoose offers us very powerful ways of validating data that's coming into our model. In this video we gonna learn all about data validation with mongoose.  
-? What exactly does validation actually mean?
-Validation is basically checking, if the entered values are in the right format for each field in our document schema, and also that values have been actually been entered for all of the required fields. Now on the other hand, we also have sanitization, which is to ensure that the inputted data is basically clean, so that is no malicious code being injected into our database or into the application itself. So, in that step we remove unwanted characters, or code from the input data. And this is actually a crucial step, like a golden standard in back-end development. To never ever accept input data coming from a user as it is. So we always need to sanitize that incoming data. But anyway, we'll leave data sanitization for the security section of the course, So, in this lecture we can focus entirely on the data validation. And we are doing this validation right on the model, it's because of the fat model and this controller philosophy, which makes the model the perfect place to perform validation.
+Mongoose offers us very powerful ways of validating data that's coming into our model. In this lecture we gonna learn all about data validation with mongoose.  
+
+**What exactly does validation actually mean?**  
+Validation is basically checking, if the entered values are in the right format for each field in our document schema, and also that values have been actually been entered for all of the required fields. Now on the other hand, we also have **sanitization**, which is to ensure that the inputted data is basically clean, so that is no malicious code being injected into our database or into the application itself. So, in that step we remove unwanted characters, or code from the input data. And this is actually a crucial step, like a golden standard in back-end development. To never ever accept input data coming from a user as it is. So we always need to sanitize that incoming data. But anyway, we'll leave data sanitization for the security section of the course, So, in this lecture we can focus entirely on the data validation. And we are doing this validation right on the model, it's because of the fact model and this controller philosophy, which makes the model the perfect place to perform validation.  
 In fact, Mongoose already comes with a bunch of validation tools out of the box. We already did some validation, like required, that is built in validator. unique is not really a validator.
 
-- maxlength and minlength:
-  max and min length are specific to the string datatype. It an input string is longer than maxlength then it produce an error. We specify an array and then set the value, and then we add an error as a second array element.
-  ? - What about in updating an existing one? is it works on updating.
+**`maxlength and minlength:`**
+max and min length are specific to the string datatype. It an input string is longer than maxlength then it produce an error. We specify an array and then set the value, and then we add an error as a second array element.
 
-- Yes, we get the same error, Now this only works because of the setting that we set way back, when we implemented this updating handler. there we set a an option {runValidators: true}, and if we set that to false then mongoose will accept this name without any error, even if the length not validate the maxlenght or minlength.
+**What about in updating an existing one? is it works on updating.**  
+Yes, we get the same error, Now this only works because of the setting that we set way back, when we implemented this updating handler. there we set a an option _{runValidators: true}_, and if we set that to false then mongoose will accept this name without any error, even if the length not validate the maxlenght or minlength.
 
-- min and max
-
-- We know that the rating must be between one and five, So very similar to the min and max length, on numbers we simply have min and max
-  min and max are not only for numbers but it also gonna works with dates.
-
-- enum:
-
-- Next we want o restrict difficulty value to only three difficulties(easy, medium, and difficult), If the user puts in something else, then it not gonna work. we set an array of values to the enum property. The array values must be the values that are allowed.
-  enum: ['easy', 'medium', 'difficult'],
-  We also want to specify error message here, but right now that's not really possible. So the solution we need to do here is to create yet another object here and then specify, the values property and message property. like this:
-  enum: {
-  values: ['easy', 'medium', 'difficult'];
-  message: 'Difficulty is either: easy, medium, or difficult.
-  }
-  enum is only available on strings.
-
-THAT'S ALL FOR NOW, BUT there are actually a bunch of other validators. for example, on stings we have match validator to check if the inputs match a given regular expression.
-THESE ARE MOST IMPORTANT BUILT-IN VALIDATORS. FOR COMPLETE LIST OF ALL OF THEM ALWAY CHECK OUT THE DOCUMENTATION
-
-\*/
-const tourSchema = new mongoose.Schema(
-{
+```js
 name: {
-type: String,
-required: [true, 'A tour mush have a name'],
-unique: true,
-trim: true,
-maxlength: [40, 'A tour name must have less or equal then 40 characters'],
-minlength: [10, 'A tour name must have more or equal then 10 characters'],
-// validate: [validator.isAlpha, 'Tour name must only contain characters']
-
-    },
-    slug: String,
-    duration: {
-      type: Number,
-      required: [true, 'A tour must have duration'],
-    },
-    maxGroupSize: {
-      type: Number,
-      required: [true, 'A tour must have a group size'],
-    },
-    difficulty: {
-      type: String,
-      required: [true, 'A tour must have a difficulty'],
-      enum: {
-        values: ['easy', 'medium', 'difficult'];
-        message: 'Difficulty is either: easy, medium, or difficult.
-      }
-    },
-    ratingsAverage: {
-      type: Number,
-      default: 4.5,
-      min: [1, 'Rating must be above 1.0'],
-      min: [5, 'Rating must be below 5.0'],
-    },
-    ratingsQuantity: {
-      type: Number,
-      // default: 0,
-    },
-    price: {
-      type: Number,
-      required: [true, 'A tour must have a price'],
-    },
-    priceDiscount: {
-      type: Number,
-      validate: {
-        validator: function (val) {
-          return val < this.price;
-        },
-        message: 'Discount price ({VALUE}) should be below regular price',
-      },
-    },
-      summary: {
-      type: String,
-      trim: true,
-      required: [true, 'A tour must have a description'],
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    imageCover: {
-      type: String,
-      required: [true, 'A tour must have a cover image.'],
-    },
-    images: [String],
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-      select: false,
-    },
-    startDates: [Date],
-    secretTour: {
-      type: Boolean,
-      default: false,
-    },
-
+  type: String,
+  required: [true, 'A tour must have a name'],
+  unique: true,
+  trim: true,
+  maxlength: [40, 'A tour name must have less or equal then 40 characters'],
+  minlength: [10, 'A tour name must have more or equal then 10 characters']
+  // validate: [validator.isAlpha, 'Tour name must only contain characters']
 },
+```
 
-{
-toJSON: { virtuals: true },
-toObject: { virtuals: true },
-}
-);
+**`min and max`**
+We know that the rating must be between one and five, So very similar to the min and max length, on numbers we simply have min and max  
 
-/\*
+```js
+ratingsAverage: {
+  type: Number,
+  default: 4.5,
+  min: [1, 'Rating must be above 1.0'],
+  max: [5, 'Rating must be below 5.0']
+},
+```
 
-- lecture 108
-- Data Validating\_ Custom Validators
+min and max are not only for numbers but it also gonna works with dates.
 
-! CODE ⬆⬆
-Sometime the built-in validators are simply not enough. And in that case, we can also build our own custom validators. And a validator is actually really just a simple function which should return either true or false. If it returns false, then it means there is an error, on the other hand when return true then the validation is correct and the input can be accepted. LET'S NOW BUILD OWN VALIDATORS:
+**`enum:`**
+Next we want o restrict difficulty value to only three difficulties(easy, medium, and difficult), If the user puts in something else, then it not gonna work. we set an array of values to the enum property. The array values must be the values that are allowed.  
+enum: ['easy', 'medium', 'difficult'],  
+We also want to specify error message here, but right now that's not really possible. So the solution we need to do here is to create yet another object here and then specify, the values property and message property. like this⤵
 
-We want to validate is if the price discount is lower than the price itself. That's something that we cannot do using the built-in validators.
+```js
+difficulty: {
+  type: String,
+  required: [true, 'A tour must have a difficulty'],
+  enum: {
+    values: ['easy', 'medium', 'difficult'],
+    message: 'Difficulty is either: easy, medium, difficult'
+  }
+},
+```
+
+*enum is only available on strings.*
+
+THAT'S ALL FOR NOW, BUT there are actually a bunch of other validators. for example, on stings we have match validator to check if the inputs match a given regular expression.  
+
+*THESE ARE MOST IMPORTANT BUILT-IN VALIDATORS. FOR COMPLETE LIST OF ALL OF THEM ALWAY CHECK OUT THE DOCUMENTATION.*
+
+---
+
+## `Data_Validating__Custom_Validators`
+
+Sometime the built-in validators are simply not enough. And in that case, we can also build our own custom validators. And a validator is actually really just a simple function which should return either true or false. If it returns false, then it means there is an error, on the other hand when return true then the validation is correct and the input can be accepted. LET'S NOW BUILD OWN VALIDATORS.
+
+We want to validate is if the price discount is lower than the price itself. That's something that we cannot do using the built-in validators.  
+
 We need to now specify here an object for the SchemaType options, just like this:
-priceDiscount: {
-type: Number,
-validate: function(val){
-return val < this.price;
-}
-}
-To specify a validator we use the validate property. and as a value we put a callback regular function -not arrow because we'll use this keyword, which will points to the current document. This callback function actually has access to the inputted value, in this case the price discount that the user specified. And remember we need to return a true or false from the validator
-? When do we want return true and when false?
-We want an error when the price discount is greater or equal than the actual price
-it return true if priceDiscount is < price and false for priceDiscount > price.
-priceDiscount: {
-type: Number,
-validate: {
-validator: function (val) {
-return val < this.price;
-},
-message: 'Discount price ({VALUE}) should be below regular price',
-},
-},
-We do not have any custom message here. So let's add that.
-We'll add error in a very similar way as we did with the enum. We need to actually specify another object and set the message property. And also add a validator property and the callback function will be the value of that property.
 
-Actually one very nice trick is that the message property also has access to the value. VALUE inside curly braces
-message: 'Discount price ({VALUE}) should be below regular price'
+**To specify a validator we use the validate property and as a value we put a callback regular function -not arrow because we'll use this keyword, which will points to the current document.** This callback function actually has access to the inputted value, in this case the price discount that the user specified. And remember we need to return a true or false from the validator.  
 
-! CAUTION: Now there is one very important caveat/warning is that inside a validator function the 'this' keyword is only gonna point to the current document when we are creating a new document. So this function is not going to work on update.
+**When do we want return true and when false?**  
+We want an error when the price discount is greater or equal than the actual price, it return true if priceDiscount is < price and false for priceDiscount > price.
+
+```js
+priceDiscount: {
+  type: Number,
+  validate: function(val){
+    return val < this.price;
+  }
+}
+```
+
+We do not have any custom message here. So let's add that.  
+We'll add error in a very similar way as we did with the enum. We need to actually specify another object and set the message property. And also add a validator property and the callback function will be the value of that property.  
+
+```js
+
+priceDiscount: {
+  type: Number,
+  validate: {
+    validator: function (val) {
+      return val < this.price;
+    },
+    message: 'Discount price ({VALUE}) should be below regular price',
+  },
+},
+```
+
+Actually one very nice trick is that the message property also has access to the value. VALUE inside curly braces. *message: 'Discount price ({VALUE}) should be below regular price'*
+
+`CAUTION:` Now there is one very important caveat/warning is that inside a validator function the 'this' keyword is only gonna point to the current document when we are creating a new document. So this function is not going to work on update.  
+
 There are a ways to fixing this but they're very complicated and not really worth pursuing. And we could of course write validator functions that do not rely on a this keyword.
 
-- There are couple of libraries on npm for data validation that we can simply plug in here as custom validators that we do not have to write ourselves.
-  ! The most popular library is called validator and so let's actually take a look at that one.
-  Validator: A library of string validators and sanitizers. link:<https://github.com/validatorjs/validator.js>
-  this library validate and sanitize only strings.
-- from this library we'll use isAlpha to check if the tour name only contains letters.
-- fist install it and require it: npm i validator
+There are couple of libraries on npm for data validation that we can simply plug in here as custom validators that we do not have to write ourselves.  
 
-And again we use validate property to use it. and then all we need to do it the plugin that function here.
+The most popular library is called validator and so let's actually take a look at that one.
+  
+`Validator:` A library of string validators and sanitizers. link:<https://github.com/validatorjs/validator.js> this library validate and sanitize only strings.  
+From this library we'll use isAlpha to check if the tour name only contains letters.  
+Fist install it and require it: ***npm i validator***
+
+And again we use validate property to use it, and then all we need to do it the plugin that function here.
+
+```js
 validate: validator.isAlpha
-If we wanna specify an error message it works just like that we did before.
-validate: [validator.isAlpha, 'Tour name must only contain characters']
-Here is one problem and that is the spaces are also allowed in isAlpha(), but obviously we want to keep the spaces here. So simply get rid of this one.
+```
 
-! END SECTION #08
-\*/
+If we wanna specify an error message it works just like that we did before.  
+
+```js
+validate: [validator.isAlpha, 'Tour name must only contain characters']
+```
+
+Here is one problem and that is the spaces are not also allowed in isAlpha(), but obviously we want to keep the spaces here. So simply get rid of this one.
+
+---
+
+***`END SECTION #08`***
+
+---
