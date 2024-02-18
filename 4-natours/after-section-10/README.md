@@ -1772,5 +1772,3 @@ It might seem a bit weird to basically manually put all the field names here, an
 `END OF SECTION`
 
 ---
-
-REMAINING SECTION WILL BE IN AFTER-SECTION-10 FOLDER.
