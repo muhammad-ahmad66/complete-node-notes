@@ -31,6 +31,8 @@ Knowing how to work with data is one of the most important and valuable skills t
 22. [Calculating_Average_Rating_on_Tours-PART_2](#calculating_average_rating_on_tours-part_2)
 23. [Preventing_Duplicate_Reviews](#preventing_duplicate_reviews)
 24. [Geospatial_Queries__Finding_Tours_Within_Radius](#geospatial_queries__finding_tours_within_radius)
+25. [Geospatial_Aggregation__Calculating_Distances](#geospatial_aggregation__calculating_distances)
+26. [Creating_API_Documentation_Using_POSTMAN](#creating_api_documentation_using_postman)
 
 ---
 
@@ -1873,65 +1875,97 @@ ratingsAverage: {
 
 ## `Geospatial_Queries__Finding_Tours_Within_Radius`
 
-In this lecture, we're gonna learn about geospatial queries in order to implement a really cool feature, which is to provide a search functionality for tours with in a certain distance of a specified point. So let's say you lived in a certain point and wanted to know which tours start at a certain from you, like 250 miles, because you don't want to drive further than that in order to start your tour experience. so that would be an awesome feature, and that's actually a really nice use case of geospatial queries.
-And in order to implement something like this, here in our tour router, we could create a nice route, something like this:
+In this lecture, we're gonna learn about geospatial queries in order to implement a really cool feature, which is to provide a search functionality for tours with in a certain distance of a specified point. So let's say you lived in a certain point and wanted to know which tours start at a certain from you, like 250 miles, because you don't want to drive further than that in order to start your tour experience. So that would be an awesome feature, and that's actually a really nice use case of geospatial queries.  
 
+And in order to implement something like this, here in our tour router, we could create a nice route, something like this:  
+
+```js
 router.route('/tour-within')
-we call this one /tours-with then we also need to specify the distance. so therefor we crate a distance parameter, Next we also need to specify the center, basically the point where we live, and then lat and lng. so basically into this variable here(latlng) , we want to pass in the coordinates of the place where we are. Let's say we live in Islamabad and wanted to find all the tours within a distance of 300 miles. so in distance will be 300, and then in latlng we put the coordinates of where we live, Then, let's also provide the options of specifying the unit. so if this distance is in kilometers or in miles. unit and unit as a parameter.
+```
+
+We call this one /tours-within then we also need to specify the distance. So therefor we crate a distance parameter, Next we also need to specify the center, basically the point where we live, and then lat and lng. so basically into this variable here(latlng), we want to pass in the coordinates of the place where we are.  
+Let's say we live in Islamabad and wanted to find all the tours within a distance of 300 miles. So in distance will be 300, and then in latlng we put the coordinates of where we live, Then, let's also provide the options of specifying the unit. So if this distance is in kilometers or in miles. unit and unit as a parameter.  
+
 Now this way of specifying a url is something that we never did before. So basically saying here center and slash: and then putting the longitude and latitude after that and then slash unit, and then after that the queries parameter. And of course we could also make it so that user should specify all of these options using a query string, but this way it looks way cleaner and it's also kind of a standard way of specifying URLs, which contains a lot of options. What I was saying that instead we could do it like this:
+
+```js
 tours-distance?distance=434&center=-30,43&unit=mi
-But instead we want to specify like this:
+// But instead we want to specify like this:
 /tour-distance/233/center/-30,43/unit/mi
+```
 
-Anyway we need a route handler, and that's gonna be at tourController.getTourWithin
-let's now go ahead an implement this handler in tourController.
+Anyway we need a route handler, and that's gonna be at tourController.getTourWithin  
+Let's now go ahead an implement this handler in tourController.
 
-*/
+```js
 router.route(
   '/tour-within/:distance/center/:latlng/unit/:unit',
   tourController.getToursWithin
 );
+```
 
-/*
+```js
 '/tour-within/:distance/center/:latlng/unit/:unit'
 /tour-within/233/center/-30,43/unit/mi
+```
 
-let's start by getting all parameters.
-So, let's use a simple destructuring, in order to get all our data at once from the parameters.
+Let's start by getting all parameters.  
+So, let's use a simple destructuring, in order to get all our data at once from the parameters.  
+
+```js
 const { distance, latlng, unit } = req.params;
-On req.params we've .distance, .latlng, and .unit, because these are the names of the three parameters that we specified here.
-Next up, let's actually get all coordinates from this latlng variable. and 32.43, 54.43 is the format that we expect the two coordinates, that makes it really easy to copy this data from google maps. So this(34.34, 43.23) is the format that we expect the latitude and longitude. And so let's now create one variable for each of them.  one for latitude and one for longitude
-Here in params latlng is a string, so we use split by comma, then it will create an array of two elements, and now we cna again use destructuring in order to save these in two variables that we're interested in.
-const [lag, lng] = latlng.spit(',');
-Next up, we want to test if we actually have the latitude and longitude variables defined, because if not, then it means the user didn't specify in the required format. So, if not lat or no lng, then we want to create an error,
-Now let's see the values of all variables, console.log(distance, lat, lng, unit);
+```
+
+On req.params we've .distance, .latlng, and .unit, because these are the names of the three parameters that we specified here.  
+Next up, let's actually get all coordinates from this latlng variable. and 32.43, 54.43 is the format that we expect the two coordinates, that makes it really easy to copy this data from google maps. So this(34.34, 43.23) is the format that we expect the latitude and longitude. And so let's now create one variable for each of them, one for latitude and one for longitude.  
+Here in params latlng is a string, so we use split by comma, then it will create an array of two elements, and now we can again use destructuring in order to save these in two variables that we're interested in.  
+
+```js
+const [lat, lng] = latlng.spit(',');
+```
+
+Next up, we want to test if we actually have the latitude and longitude variables defined, because if not, then it means the user didn't specify in the required format. So, if not lat or no lng, then we want to create an error.  
+Now let's see the values of all variables.  
+
+```js
 {{URL}}api/v1/tours/tour-within/233/center/-30,43/unit/mi
-yeah we get the all the values [233 -30 43 mi] that we specified in the url.
 
-Now it's time to actually write the query itself. Now a geospatial query actually works quite similar to a regular query. So we're still going to write tours = Tour.find(),
-Now all we need to do is to specify our filter object here in the find method.
-Remember that we basically want to query for start location, because the start location field is what holds the geospatial point where each tour starts, and so that's exactly what we're searching for.
-So, in startLocation we need to specify the value that we'e searching for. And for that we will now use a geospatial operator called  $geoWithin, and this operator does exactly what it says. so it finds documents with a certain geometry. And that geometry is what we need to define as a next step.
+console.log(distance, lat, lng, unit);
+```
+
+Yeah we get the all the values [233 -30 43 mi] that we specified in the url.
+
+Now it's time to actually write the query itself. Now a geospatial query actually works quite similar to a regular query. So we're still going to write tours = Tour.find(),  
+**Now all we need to do is to specify our filter object here in the find method.**  
+Remember that we basically want to query for start location, because the start location field is what holds the geospatial point where each tour starts, and so that's exactly what we're searching for.  
+
+So, in startLocation we need to specify the value that we'e searching for. And for that we will now use a geospatial operator called  `$geoWithin`, and this operator does exactly what it says. so it finds documents with a certain geometry. And that geometry is what we need to define as a next step.  
 So, we want to find documents, but where do we actually want to find these documents? Well, we want to find them inside of a sphere that starts at this point that we defined in latlng and which has a radius of the distance that we defined. So in our example in Islamabad if we specify the distance of 250 miles, then that means we want to find all the tour documents within a sphere has a radius of 250 miles.
-And so now we need to pass the information here into the geoWithin operator. And we do that by defining a $centerSphere. And centerSphere operator takes an array of coordinates and the radius. Let's now define the coordinates here in the array, and for that we need yet another array. and then lng and lat. Here we first need to always define the longitude and then latitude, which is a bit counterintuitive, because usually coordinate pairs are always specified with the lat first and then lng.
-Remember a $centerSphere will takes 3rd operator, a radius, but here we have center in radius, Now here we actually do not pass in the distance, but instead a mongodb expects a radius in a special unit called radians.
-So, first we define a radius in a variable, So, the radius is basically the distance that we want to have as the radius, but converted to a special unit called radians. And in order to get the radians, we need to divide our distance by the radius of the earth. Also converting to radian we need take a consideration our units here, because of course the radius of the earth is different in miles then in kilometers.
-So let's now do a turnery operator here, and say that if the unit is equal to miles.. 3963.2, this is the radius of the earth in miles, 6378.1, this is in km.
-All right, so this kind of crazy conversion here is necessary because normally mongodb expect the radius of our sphere to be in radians. And in radians we get by dividing the distance by the radius of the earth. Now we're almost ready to test this now.
-One very important thing is that we actually in order to be able to do geospatial queries, we need to first attribute an index to the field where the geospatial data that we're searching for is stored. So, in this case, we need to add an index to startLocation field in tour model. so let's do that in tour model.
 
- but now we're actually not going to set 1 or -1, because this time it's a different index that we need. So for geospatial data, this index need to be a 2D sphere index if the data describes real points on the earth like sphere, Or instead we can also use 2D index if we're using just fictional points on a simple two dimensional plane. Now in this case of course, we are talking about real points on the earth's surface, so we're going to use a 2D sphere index here. so, startLocation:'2dsphere', And with this we're basically telling mongodb that this startLocation should be indexed to a 2D sphere, so, an earth like sphere where all our data are located.
-  tourSchema.index({ startLocation: '2dsphere' });
+And so now we need to pass the information here into the `geoWithin` operator. And we do that by defining a `$centerSphere`. And `centerSphere` operator takes an array of coordinates and the radius. Let's now define the coordinates here in the array, and for that we need yet another array. and then lng and lat. Here we first need to always define the longitude and then latitude, which is a bit counterintuitive, because usually coordinate pairs are always specified with the lat first and then lng.  
 
-Now we're ready to test on this route:
-{{URL}}api/v1/tours/tour-within/400/center/34.111745,-118.113491/unit/mi
-Yes, we got 3 results here, because 3 tours are starts withing 400miles of radius from the latlng, that we specified. But how can we really know that it's true?
-Well, actually we can use compass for this. On compass we've something really nice, which is Schema tab. and analyze the schema. Now here we've a nice summary for all of our fields. we're really interested in startLocations. Now we would see a map here, but right now there is no map because we have a document right now which doesn't have a start location. So in order to this to work properly we need to get rid of that document, it's one of the testing documented that we create for test. yeah, now we have map on startLocation.
-And now here we can actually replicate that query using this graphical interface.
+Remember a $centerSphere will takes 3rd operator, a radius, but here we have a center in radius, Now here we actually do not pass in the distance, but instead a mongodb expects a radius in a special unit called **radians**.  
+So, **First we define a radius in a variable, So, the radius is basically the distance that we want to have as the radius, but converted to a special unit called radians.** And in order to get the radians, we need to divide our distance by the radius of the earth. Also converting to radian we need take a consideration our units here, because of course the radius of the earth is different in miles then in kilometers.
 
-! Let's take a look at documentation of MongoDB, specially at Geospatial operators.
+So let's now do a turnery operator here, and say that if the unit is equal to miles.. 3963.2, this is the radius of the earth in miles, 6378.1, this is in km.  
+All right, so this kind of crazy conversion here is necessary because normally mongodb expect the radius of our sphere to be in radians. And in radians we get by dividing the distance by the radius of the earth. Now we're almost ready to test this now.  
+One very important thing is that we actually in order to be able to do geospatial queries, we need to first attribute an index to the field where the geospatial data that we're searching for is stored. So, in this case, we need to add an index to startLocation field in tour model. So let's do that in tour model.
 
-*/
+But now we're actually not going to set 1 or -1, because this time it's a different index that we need. So for geospatial data, this index need to be a 2D sphere index if the data describes real points on the earth like sphere, Or instead we can also use 2D index if we're using just fictional points on a simple two dimensional plane. Now in this case of course, we are talking about real points on the earth's surface, so we're going to use a 2D sphere index here. so, ***startLocation:'2dsphere'***, And with this we're basically telling mongodb that this startLocation should be indexed to a 2D sphere, so, an earth like sphere where all our data are located.  
+
+```js
+tourSchema.index({ startLocation: '2dsphere' });
+```
+
+Now we're ready to test on this route:  
+***{{URL}}api/v1/tours/tour-within/400/center/34.111745,-118.113491/unit/mi***  
+Yes, we got 3 results here, because 3 tours are starts withing 400miles of radius from the latlng, that we specified. But how can we really know that it's true?  
+Well, actually we can use compass for this. On compass we've something really nice, which is Schema tab. And analyze the schema. Now here we've a nice summary for all of our fields. we're really interested in startLocations. Now we would see a map here, but right now there is no map because we have a document right now which doesn't have a start location. So in order to this to work properly we need to get rid of that document, it's one of the testing documented that we create for test. yeah, now we have map on startLocation.  
+And now here we can actually replicate that query using this graphical interface.  
+
+*Let's take a look at documentation of MongoDB, specially at Geospatial operators.*
+
+```js
 exports.getToursWithin = catchAsync(async (req, res, next) => {
   const { distance, latlng, unit } = req.params;
   const [lat, lng] = latlng.split(',');
@@ -1958,46 +1992,62 @@ exports.getToursWithin = catchAsync(async (req, res, next) => {
   });
 });
 
-/*
+```
 
-* lecture 171
-* Geospatial Aggregation _ Calculating Distances
-In previous video we searched for tour documents within a certain distance from a certain point using geospatial queries. Now in this lecture, let's use geospatial aggregation in order to calculate distances to all the tours from a certain point. And so, just like before let's actually start by defining the route so that we know which data we're going to be working with.
+---
+
+## `Geospatial_Aggregation__Calculating_Distances`
+
+In previous lecture we searched for tour documents within a certain distance from a certain point using geospatial queries. Now in this lecture, let's use geospatial aggregation in order to calculate distances to all the tours from a certain point. And so, just like before let's actually start by defining the route so that we know which data we're going to be working with.  
 
 distances/ and then the data that we need is the latitude and longitude of the point where the user currently is, and then let's alo allow user to specify the unit. This time we do not need the distance parameter, as we had before in previous one, because we're not gonna be searching for a certain radius. We're really gonna calculate the distance from a certain point to all the tours that we have in our collection.
 router.route('distances/:latlng/unit/:unit').get(tourController.getDistances);
-*/
+
+```js
 router.route('distances/:latlng/unit/:unit').get(tourController.getDistances);
+```
 
-/*
-So, the beginning of this getDistances function is actually quite similar to the getToursWithin one. we have some similar units, then we also need to get the latitude and longitude, and we also need to create the error if there is no latitude or longitude.
-Next up, let's now do the actual calculation. So, just like before in order to do calculations we always use the aggregation pipeline. and remember that is called on the model itself, here on Tour. so, Tour.aggregate(), and let's await and save it into the distances variable.
-And remember in aggregate method we passed in an array with all the stages of the aggregation pipeline that we want to define.
-Now for geospatial aggregation there is actually only one single stage, and that's called $geoNear, so this is the only geospatial aggregation pipeline stage that actually exists, This one always needs to be the first one in the pipeline.
-!So, keep that in mind, that $geoNear always need to be the first stage. And also it requires at least one of our fields contains a geospatial index. Actually we already did that before, let's take a look so, our startLocation already has 2dsphere geospatial index on it. And since we're using this startLocation field in order to calculate the distances, that's then perfect.
-so, if there's only one field with geospatial index then this $geoNear stage will automatically use that index in order to perform the calculation. But if we have multiple fields with geospatial indexes then we need to use the keys parameter, in order to define the field that we want to use for calculations. But in this case we've only one field and so automatically that startLocation field is going to be used for doing these calculations.
-? So, what do we need to pass into gerNear?
-first we need to specify the near property, and near is the point from which to calculate the distances. So, all the distances will be calculated from this point that we specify here in near property. So all the distances will calculated between the points we specify in near property and the all startLocations. And so this near point here is of course the point that we pass into this function with the latitude and longitude that comes in url. Now we need to specify this point as geoJson, so that's just like we did before, where we need to specify type property as 'Point', and then specify the coordinates property. And as always the first coordinates here is the longitude, then latitude. And let's multiply both of them by 1, simply to convert it to numbers.
-So near is the first mandatory field in $geoNear stage, and the second one is the distanceField property.  
-And distanceField is the name of the field that will be created and where all the calculated distances will be stored. let's simply call this one 'distance'
-Actually, that's it. That's all the field that are mandatory in $geoNear stage, and of course we can add other stages after $geoNear, we'll do that bit later, but now want to really see the results of this...
-Here we've an error, saying geoNear always need to be the first stage in a pipeline, But if we now take a look at the code, we might think that actually our geoNear stage is currently the first stage in our pipeline, because in our aggregate pipeline there is nothing before the $geoNear stage. So why????
-? So why do we get this error that $geoNear is not first stage in the pipeline?
-"Actually it took me a bit of time to figure this out" -Jonas, Because this has something to do with a piece of code that we wrote a long time ago. That's in tourModel, there we have an aggregation middleware, and remember that what that middleware did is to actually always add the $match stage that we specify there in all the other stages. So we have the first stage a $match, that comes from the aggregation middleware and then as a second stage we've  $geoNear, so it actually makes sense that we get that error.
+So, the beginning of this getDistances function is actually quite similar to the getToursWithin one. we have some similar units, then we also need to get the latitude and longitude, and we also need to create the error if there is no latitude or longitude.  
+
+Next up, let's now do the actual calculation. So, just like before in order to do calculations we always use the aggregation pipeline. and remember that is called on the model itself, here on Tour. so, **Tour.aggregate()**, and let's await and save it into the distances variable.  
+
+And remember in aggregate method we passed in an array with all the stages of the aggregation pipeline that we want to define.  
+Now for geospatial aggregation there is actually only one single stage, and that's called `$geoNear`, so this is the only geospatial aggregation pipeline stage that actually exists, This one always needs to be the first one in the pipeline.  
+So, **keep that in mind, that `$geoNear` always need to be the first stage**. And also it requires at least one of our fields contains a `geospatial index`. Actually we already did that before, let's take a look so, our startLocation already has 2dsphere geospatial index on it. And since we're using this startLocation field in order to calculate the distances, that's then perfect.  
+So, if there's only one field with geospatial index then this `$geoNear` stage will automatically use that index in order to perform the calculation. But if we have multiple fields with geospatial indexes then we need to use the keys parameter, in order to define the field that we want to use for calculations. But in this case we've only one field and so automatically that startLocation field is going to be used for doing these calculations.  
+
+**What do we need to pass into gerNear?**  
+First we need to specify the near property, and near is the point from which to calculate the distances. So, all the distances will be calculated from this point that we specify here in near property. So all the distances will calculated between the points we specify in near property and the all startLocations. And so this near point here is of course the point that we pass into this function with the latitude and longitude that comes in url. Now we need to specify this point as `geoJson`, so that's just like we did before, where we need to specify type property as 'Point', and then specify the coordinates property. And as always the first coordinates here is the longitude, then latitude. And let's multiply both of them by 1, simply to convert it to numbers.  
+
+So near is the first mandatory field in `$geoNear stage`, and the second one is the `distanceField property`.  
+And **distanceField** is the name of the field that will be created and where all the calculated distances will be stored. let's simply call this one 'distance'.  
+Actually, that's it. That's all the field that are mandatory in $geoNear stage, and of course we can add other stages after $geoNear, we'll do that bit later, but now want to really see the results of this...  
+
+Here we've an error, saying geoNear always need to be the first stage in a pipeline, But if we now take a look at the code, we might think that actually our geoNear stage is currently the first stage in our pipeline, because in our aggregate pipeline there is nothing before the $geoNear stage. **So why????**  
+**So why do we get this error that $geoNear is not first stage in the pipeline?**  
+"Actually it took me a bit of time to figure this out" -Jonas, Because this has something to do with a piece of code that we wrote a long time ago. That's in tourModel, there we have an aggregation middleware, and remember that what that middleware did is to actually always add the $match stage that we specify there in all the other stages. So we have the first stage a $match, that comes from the aggregation middleware and then as a second stage we've  $geoNear, so it actually makes sense that we get that error.  
 Now we could go ahead and change this middleware, and say that if geoNear is the first operator in the pipeline that simply do not do this there, -do not do this $match stage there. But that's a bit too much work for that use case, so all we're gonna do is to get rid of that middleware, simply comment out.  
-Now we get our tours, and it should have that distance field that we add by distanceField property. yes, indeed we have distance property with a huge big number as a value. It is this big number, because actually it's calculated in meters. so now the distance is in meters,
-So let's first of all convert this one to kilometers. Later on we will then also convert it to miles because we specified the unit to miles. but for now the easiest solution  is to actually convert it to kilometers, because all we have to do for that is to just divide it by 1000.
-And also what we want to do is to only really get the distances, and the name of the tours. so get rid of all the other clutter the we have in response and really on focus on the distances themselves. So for that we use the $project stage.
-So let's add $project stage as a second stage, in their we need to specify the name of the fields that we want to keep. in this case only distance and name.
-And now let's basically divide the distance by 1000 in order to convert these meters to kilometers. Actually it's very easy to do that, because in a geoNear stage we can actually specify the distance multiplier property. So, distanceMultiplier:0.001  In here we will specify the number, which is then going to be multiplied with all distances. here we specify 0.001, and so that is exactly the same as dividing the 1000.
-Now we get two results only the name of tours and the distances in kilometers.
-Now let's do the conversion
-lets create a multiplier variable with a ternary operator, if the unit is a mile then what should be multiplier, For that lets simply google what one meter is in miles. 0.000621371, this is one meter in miles, so all we need to do is to multiply our result in meters with this number. If the unit is in meter then we simply multiply with 0.001, that we used before.
-const multiplier = unit === 'mi'? 0.000621371 : 0.001
 
-That's it, that wraps up this lecture,
+Now we get our tours, and it should have that distance field that we add by distanceField property. yes, indeed we have distance property with a huge big number as a value. It is this big number, because actually it's calculated in meters. so now the distance is in meters.  
+So let's first of all convert this one to kilometers. Later on we will then also convert it to miles because we specified the unit to miles. But for now the easiest solution is to actually convert it to kilometers, because all we have to do for that is to just divide it by 1000.  
+And also what we want to do is to only really get the distances, and the name of the tours. so get rid of all the other clutter the we have in response and really on focus on the distances themselves. So for that we use the `$project stage`.  
+
+So let's add `$project stage` as a second stage, in their we need to specify the name of the fields that we want to keep. In this case only distance and name.  
+And now let's basically divide the distance by 1000 in order to convert these meters to kilometers. Actually it's very easy to do that, because in a geoNear stage we can actually specify the `distance multiplier property`. So, ***distanceMultiplier:0.001***  In here we will specify the number, which is then going to be multiplied with all distances. here we specify 0.001, and so that is exactly the same as dividing the 1000.
+Now we get two results only the name of tours and the distances in kilometers.  
+
+Now let's do the conversion.  
+lets create a multiplier variable with a ternary operator. If the unit is a mile then what should be multiplier, For that lets simply google what one meter is in miles. 0.000621371, this is one meter in miles, so all we need to do is to multiply our result in meters with this number. If the unit is in meter then we simply multiply with 0.001, that we used before.
+
+```js
+const multiplier = unit === 'mi'? 0.000621371 : 0.001
+```
+
+That's it, that wraps up this lecture.  
 These two videos are just for great overview of how to work with geospatial data in mongodb. And there's a ton of possibilities of stuff that we can do in our awn applications using this kind of data.
-*/
+
+```js
+
 exports.getDistances = catchAsync(async (req, res, next) => {
   const { latlng, unit } = req.params;
   const [lat, lng] = latlng.split(',');
@@ -2040,23 +2090,29 @@ exports.getDistances = catchAsync(async (req, res, next) => {
     },
   });
 });
+```
 
-/*
+---
 
-* lecture 172
-* Creating API Documentation Using POSTMAN
-So, our API is now basically finished. And so in this final video of the section, we're gonna quickly create documentation for API directly in postman. We can easily create some quick documentation right in postman. And it's really important to have API documentation in place because this is how we communicate to team members, or even to our final users of the API, how they can actually use it in practice.
+## `Creating_API_Documentation_Using_POSTMAN`
+
+So, our API is now basically finished. And so in this final lecture of the section, we're gonna quickly create documentation for API directly in postman. We can easily create some quick documentation right in postman. And it's really important to have API documentation in place because this is how we communicate to team members, or even to our final users of the API, how they can actually use it in practice.  
 Before doing that lets do some quick fix.
 
-* In 'log in' endpoint, we actually expose our password, that's not a good idea, and so lets  create an environment variable which is going to hold this password. Since it's always the same that should be no problem. in Dev:Natours and Prod:Natours as well.
+In 'log in' endpoint, we actually expose our password, that's not a good idea, and so lets  create an environment variable which is going to hold this password. Since it's always the same that should be no problem. in Dev:Natours and Prod:Natours as well.
 
-Now we create a description for each and every request that we have in our collection. Now I'm not going to do that, I will just exemplify it here with the fist one. with getAllTours
+Now we create a description for each and every request that we have in our collection. Now I'm not going to do that, I will just exemplify it here with the fist one. with getAllTours.  
 Under the title we can add the description on postman let's say "Use this endpoint to create a new tour",
-Then the same thing applies to the folders, edit and then add description.  "You can get all tours, create new ones, and edit and delete tours. There are also special endpoints for some special requirements."
-We can also add a description on Natours it self. lats say "The Natours API contains endpoints for tours, users, and reviews."
-So, we should always add a description to all the requests, to all the folders, and also to the collection itself.
+Then the same thing applies to the folders, edit and then add description.  "You can get all tours, create new ones, and edit and delete tours. There are also special endpoints for some special requirements."  
+We can also add a description on Natours it self. lats say "The Natours API contains endpoints for tours, users, and reviews."  
+So, we should always add a description to all the requests, to all the folders, and also to the collection itself.  
 We can also actually describe the query parameters in a query string, so let's do that in getAllTours.
 
 Now we should be ready to actually publish our API documentation. click 3-dots on Natours and click on View documentation and publish
 Now our api is on this url: <https://documenter.getpostman.com/view/30560440/2s9YXpUJAU>
-*/
+
+---
+
+***`20/02/2024`*** *-Formatted*
+
+---
