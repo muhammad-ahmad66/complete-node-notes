@@ -1,64 +1,106 @@
+# `ADVANCED FEATURES_ PAYMENTS, EMAIL, FILE UPLOADS`
 
-! NEXT SECTION #13
-
-* ADVANCED FEATURES_ PAYMENTS, EMAIL, FILE UPLOADS
 In this one we will make our website in API even better by implementing advanced features like uploads, image processing, sending emails, and even accepting credit payments using the very popular Stripe service.
-*/
-/*
-* lecture 198
-* Image Uploads Using Multer _Users
-In the first part of this section we'll be learning all about uploading images with the 'Multer' package and this particular video we will start implementing image uploads for user photos.
-Now we're gonna be working on uploading user photos and let's lets open up the userRoutes.
-So, 'Multer' is a very popular middleware to handle multi-part form data, which is a form en-coding that's used to upload files from a form. So remember how in the last section we used a url encoded form in order to update user data and for that we also had to include a special middleware.
-And so Multer is basically a middleware for multi-part form data. And now here in userRoutes what we're gonna do is, we'll allow the user to upload a photo on the /updateMe route and so instead of just being able to update email and name, users will then also be able to upload their user photos. So once more let's start by installing the package that we need.
-! npm i multer
-lets include that in userRoutes file const multer = require('multer');
-And now we need to configure a so-called Multer upload and then use it.
-/*
+
+## `Table of Contents`
+
+1. [Image_Uploading_using_Multer](#image_uploading_using_multer)
+2. [Configuring_Multer](#configuring_multer)
+3. [Saving_image_name_to_database](#saving_image_name_to_database)
+4. [Resizing_Images](#resizing_images)
+5. [Adding_Image_Uploads_to_Form](#adding_image_uploads_to_form)
+6. [Uploading_Multiple_Images](#uploading_multiple_images)
+7. [Processing_Multiple_Images](#processing_multiple_images)
+8. [Building_a_Complex_Email_Handler](#building_a_complex_email_handler)
+
+## `Image_Uploading_using_Multer`
+
+In the first part of this section we'll be learning all about uploading images with the ``Multer` package and this particular lecture we will start implementing image uploads for user photos.  
+Now we're gonna be working on uploading user photos and let's open up the userRoutes.  
+**'Multer' is a very popular middleware to handle multi-part form data, which is a form en-coding that's used to upload files from a form.** So remember how in the last section we used a url encoded form in order to update user data and for that we also had to include a special middleware.  
+And so Multer is basically a middleware for multi-part form data. And now here in userRoutes what we're gonna do is, we'll allow the user to upload a photo on the /updateMe route and so instead of just being able to update email and name, users will then also be able to upload their user photos. So once more let's start by installing the package that we need.  
+***npm i multer***  
+*lets include that in userRoutes file const multer = require('multer');*  
+And now we need to configure a so-called Multer upload and then use it.  
+
 let's do that right at the beginning and let's call it upload and we call the multer function that we just included, and the pass in an object, for some options. Now the only option that we're gonna specify here is the destination property and we're gonna set it to 'public/img/users So {dest : 'public/img/users'} that is exactly the folder where we want to save all the images that are being uploaded.  
-And of course we can configure this in a much more complex way and we're gonna be doing in a next lecture. And by the way, we could actually just have called the multer function without any options in there, and then the upload image would simply be stored in memory and not saved anywhere to disk, but of course at this point that's not what we want, and so we at least need to specify this destination option. And with this our file is then really uploaded into directory in our file system.
-? And REMEMBER that images are directly uploaded into the database, we just upload them into our file system and then in the database we put the link basically to that image. so in this case in each user document we will have tha name of the uploaded file.
+And of course we can configure this in a much more complex way and we're gonna be doing in a next lecture. And by the way, we could actually just have called the multer function without any options in there, and then the upload image would simply be stored in memory and not saved anywhere to disk, but of course at this point that's not what we want, and so we at least need to specify this destination option. And with this our file is then really uploaded into directory in our file system.  
+And REMEMBER that images are not directly uploaded into the database, we just upload them into our file system and then in the database we put the link basically to that image. so in this case in each user document we will have tha name of the uploaded file.
 Any way what we need to now is to use this upload variable here to really create a middleware function that we can put in the /updateMe route. And it works like this, upload.single('photo'), and it's single because we only want to upload one single image and here in single func we pass the name of the field that's going to hold the image to upload, and that will be photo, and with field means the field in the form that is going to be uploading the image.
+
+```js
 router.patch('/updateMe', upload.single('photo'), userController.updateMe);
+```
 
 * QUICK CONCLUSION:
 We included the Multer package and then with that we created an upload.  And this upload is just to define a couple of settings, where in this example we only define the destination, then we use that upload to create a new middleware that we can then all to this stack of the route that we want to use to upload the file, so to the /updateMe route, so for that we say upload.single('photo'); here we specify the name of the field that's going to hold this file. And so this middleware will then take care of taking the file and basically copying it to the destination that we specified, And the after that of course it will call the next middleware in the stack which is updateMe. Also this middleware(upload.single()) will put the file, or at least some information about the file on the request object and so let's actually take a look at that.
-*/
+
+```js
 const multer = require('multer');
 const upload = multer({ dest: 'public/img/users' });
 router.patch('/updateMe', upload.single('photo'), userController.updateMe);
-/*
-So let's go to the /updateMe handler, and right in the beginning let's say console.log(req.file), and also req.body. let's test it. Now we test it in postman. Here in postman instead of sending the photo property in raw from body tab, like we did for changing name or email, we put the photo property in form-data. Because this is the way how we can send multi-part form data. so as we want to change name and photo so we put name and poto property in form-data tab. for image instead of text we choose type file. and then as a value we can select the image that we want to upload. choose the image and send the request.  We get all kind of information about the file. so the originalname, encoding, mimetype, destinating, path, size etc these are came from req.file, and remember in console we also sepcified req.body. Now here body in only the name of the image. So our body parser is not really able to handle files  and so that's way the file is not showing up in the body at all, and that is the whole reason why we actually need the multer package. Lets now take a look at our folder, and so here we have an image, but if we click it now we can't realy see it because as we can see here in console it desn't even have an extension. the file really showed up here in our folder that we spcifiel as options of upload. It's working, but not where we want it, so we want to give it a better file name, and we also want to re-organize this code that we have at this point a little bit. NEXT VIDE.
-in this console the file name looking like this:
-filename: '627c70a220023cb3cf1358ba22a376ed // here no no extension. like .png, .jpg etc
-*/
-exports.updateMe = catchAsync(async (req, res, next) => {
+```
+
+So let's go to the /updateMe handler, and right in the beginning let's say console.log(req.file), and also req.body. let's test it. Now we test it in postman. Here in postman instead of sending the photo property in raw from body tab, like we did for changing name or email, we put the photo property in form-data. Because this is the way how we can send multi-part form data. so as we want to change name and photo so we put name and photo property in form-data tab. For image instead of text we choose type file. and then as a value we can select the image that we want to upload. choose the image and send the request.  We get all kind of information about the file. so the originalname, encoding, mimetype, destinating, path, size etc these are came from req.file, like this:
+
+```js
+{
+  fieldname: 'photo',
+  originalname: 'leo.jpg',
+  encoding: '7bit',
+  mimetype: 'image/jpeg',
+  destination: 'public/img/users',
+  filename: '505ff273301314941a016bc0b2051e48',
+  path: 'public\\img\\users\\505ff273301314941a016bc0b2051e48',
+  size: 207078
+}
+```
+
+And remember in console we also specified req.body. Now here in body there only the name of the image. So our body parser is not really able to handle files and so that's way the file is not showing up in the body at all, and that is the whole reason why we actually need the multer package.  
+Lets now take a look at our folder, and so here we have an image, but if we click it now we can't really see it because as we can see here in console it doesn't even have an extension. the file really showed up here in our folder that we specified as options of upload. It's working, but not where we want it, so we want to give it a better file name, and we also want to re-organize this code that we have at this point a little bit. NEXT LECTURE.  
+in this console the file name looking like this:  
+*filename: '627c70a220023cb3cf1358ba22a376ed // here no no extension. like .png, .jpg etc*
+
+```JS
+ exports.updateMe = catchAsync(async (req, res, next) => {
   console.log(req.file);
   console.log(req.body);
   // ------------------
   // ------------------
 })
+```
 
-/*
+---
 
-* lecture 199
-* Configuring Multer
-Let's now actually configure Multer to our needs. First giving images a better filename, then second allowing only image files to be uploaded onto our server.
-And to start, let's actually move all the multer-related stuff from the userRoutes(where we put in previous lec) to the rserController. Right at the top of of userController file, Also cut a middleware that we put in the /updateMe, and export from the userController file. and then import it, with userController.uploadUserPhoto.
+## `Configuring_Multer`
 
-? Let's now go ahead and configure our Multer upload to our needs. And so for that we're going to create one Multer storage one multer filter. And then we're going to use that storage and the filter to then create the upload form there.
+Let's now actually configure Multer to our needs. First giving images a better filename, then second allowing only image files to be uploaded onto our server.  
+And to start, let's actually move all the multer-related stuff from the userRoutes(where we put in previous lec) to the userController. Right at the top of of userController file, Also cut a middleware that we put in the /updateMe, and export from the userController file. and then import it, with userController.uploadUserPhoto.
+
+Let's now go ahead and configure our Multer upload to our needs. And so for that we're going to create **one Multer storage** and **one multer filter**. And then we're going to use that **storage** and the **filter** to then create the upload from there.  
 So let's do that right here at the top of the userController.js file.  
 
-To store we use multer.diskStorage(), We could also choose to store the file in memory as a buffer, so that we could then use it later by other processes, and actually we're gonna do that a bit later, but for now we want to really store the file as it is in our file system. So diskStorage() will take a couple of options, and the first one is the destination, but now we cannot simply set it to this path['public/img/users'] like we did before. Now this is a bit more complex.
-So, really this destination here is a callback function with goes like this: destination: (req, res, cb) So this callback function has access to the current request, to currently uploaded file,  and also to a callback function. And this callback function is a bit like the next function in express. but we calling it cb here, which stands for callback, so that's a different name then next, because actually it doesn't come from express.  But it's similar in that we can pass errors in here, and other stuff as we will in a second.
-So now to define destination we actually need to call that callback function, and then first argument is an error if there is, and if now then just null, and the second argument is then the actual destination. So again; this all looks a bit weird and complex, so lets actually take a look at multer documentation on github.
-Now we need to set the filename property after destination. and agin this is very similar callback function with a similar arguments: request, file, and callback, And then in a function, we want to give our file some unique filenames. And the way we're going to do that is to call them, user-userId-currentTimestamp, and then file extension, something like this:
-! user-8394jk34jkd-34893489.jpeg
-And with this we can basically guarantee that there won't be two images with the same filename. If we used only the userId, then of course multiple uploads by the same user would override the previous image. and if we only used user with timestamp then if two users were uploading an image at the same time, they would then get the exact same filename.
-So first of all let's actually extract the file extension from the uploaded file. How do we get that? well from the previous lecture where we logged req.file, where in console we see a property called mimetype, in this as a value we have a type of the uploaded image, and remember this req.file exactly the 'file' that  we passed in in this function. so here we have mimetype with value image/jpeg, so this is where we gonna get file extension. so: ext = file.mimetype.split['/'](1); // so this is the extension.
-And no just like before we need to call the callback function will no error, and then the filename that we want to specify. So for userId, since we have request so it's simple, req.user.id. this is the id of currently logged in user. then to timestamp simply Date.now(), and then the .ext for the extension.
+To store we use ***multer.diskStorage()***, We could also choose to store the file in memory as a buffer, so that we could then use it later by other processes, and actually we're gonna do that a bit later, but for now we want to really store the file as it is in our file system.  
+So diskStorage() will take a couple of options, and the first one is the destination, but now we cannot simply set it to this path['public/img/users'] like we did before. Now this is a bit more complex.  
+So, really this destination here is a callback function with goes like this: destination: (req, res, cb) So this callback function has access to the current request, to currently uploaded file,  and also to a callback function. And this callback function is a bit like the next function in express. But we calling it cb here, which stands for callback, so that's a different name then next, because actually it doesn't come from express.  But it's similar in that we can pass errors in here, and other stuff as we will in a second.  
+So now to define destination we actually need to call that callback function, and then first argument is an error if there is, and if now then just null, and the second argument is then the actual destination. So again; this all looks a bit weird and complex, so lets actually take a look at multer documentation on github.  
+Now we need to set the filename property after destination. And again this is very similar callback function with a similar arguments: request, file, and callback, And then in a function, we want to give our file some unique filenames. And the way we're going to do that is to call them, user-userId-currentTimestamp, and then file extension, something like this: ***user-8394jk34jkd-34893489.jpeg***  
+And with this we can basically guarantee that there won't be two images with the same filename. If we used only the userId, then of course multiple uploads by the same user would override the previous image. and if we only used user with timestamp then if two users were uploading an image at the same time, they would then get the exact same filename.  
+So first of all let's actually extract the file extension from the uploaded file. How do we get that? well from the previous lecture where we logged req.file, where in console we see a property called mimetype, in this as a value we have a type of the uploaded image, and remember this req.file exactly the 'file' that  we passed in in this function. so here we have mimetype with value image/jpeg, so this is where we gonna get file extension. so:  
+
+```js
+ext = file.mimetype.split['/'](1); // so this is the extension.
+```
+
+And no just like before we need to call the callback function with no error, and then the filename that we want to specify. So for userId, since we have request so it's simple, req.user.id. this is the id of currently logged in user. then to timestamp simply Date.now(), and then the .ext for the extension.  
+
+```js
 cb(null, `user-${req.user.id}-${Date.now()}.${ext}`);
-this is actually our Storage. And so basically a complete definition of how we want to store our files, with the destination and the filename.
+```
+
+This is actually our Storage. And so basically a complete definition of how we want to store our files, with the destination and the filename.
+
+```js
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/img/users');
@@ -68,11 +110,15 @@ const multerStorage = multer.diskStorage({
     cb(null, `user-${req.user.id}-${Date.now()}.${ext}`);
   },
 });
+```
 
-Next up, let's create a multer filter, le's call it multerFilter
-And the filter in multer is simply again a callback function, similar to ones we had before accessing the request file and the callback function.
-The goal of this function is basically to test if the uploaded file is an image, and if it is so then we pass true into the callback function, and if it's not we pass false into the callback function along with an error. Because we do not want to allow files to be uploaded that are not images. And so that's exactly what this filter is for. Now if in your own application you want to upload something else, let's say CSV files, then of course you can test for that instead of images.
-So, let's test if the uploaded file an image, for that we will once more use the mimetype because whatever image type is uploaded, so no matter it it's a jpeg, or png, or bitmap, or a tiff, or really anything the mimetype will always start with image.   if(file.mimetype.startsWith('image')), if this is true then we pass in null and true in cb function. otherwise we'll then pass an error and then false, so here we will now create an appError just like we've been doing all along.  
+Next up, let's create a multer filter, let's call it multerFilter  
+And the filter in multer is simply again a callback function, similar to ones we had before accessing the request file and the callback function.  
+The goal of this function is basically to test if the uploaded file is an image, and if it is so then we pass true into the callback function, and if it's not we pass false into the callback function along with an error. Because we do not want to allow files to be uploaded that are not images. And so that's exactly what this filter is for. Now if in your own application you want to upload something else, let's say CSV files, then of course you can test for that instead of images.  
+
+So, let's test if the uploaded file an image, for that we will once more use the mimetype because whatever image type is uploaded, so no matter it it's a jpeg, or png, or bitmap, or a tiff, or really anything the mimetype will always start with image. ***if(file.mimetype.startsWith('image'))***, if this is true then we pass in null and true in cb function. otherwise we'll then pass an error and then false, so here we will now create an appError just like we've been doing all along.  
+
+```js
 const multerFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image')) {
     cb(null, true);
@@ -80,21 +126,27 @@ const multerFilter = (req, file, cb) => {
     cb(new AppError('Not an image! Please only images', 400), false);
   }
 };
+```
 
-Great!, We have storage and filter, now it's time to actually use them in order to create the upload.
-const upload = multer({ dest: 'public/img/users' }); Now the upload will not look like this but instead we'll pass in these variables.
+Great!, We have storage and filter, now it's time to actually use them in order to create the upload.  
+*const upload = multer({ dest: 'public/img/users' });* Now the upload will not look like this but instead we'll pass in these variables.  
 So in multer we can specify the storage property. and then the file filter.
+
+```js
 const upload = multer({
   storage: multerStorage,
   fileFilter: multerFilter,
 });
-OK, and that's it. And of course we could put all of this here as an argument directly. but this looks clean and professional.
+```
 
-Finally we then of course, just like we did in last video use this upload and on that we call single with the name of the field, and then from there we create an export our middleware, which we already included on the route.
+OK, and that's it. And of course we could put all of this here as an argument directly. But this looks clean and professional.
+
+Finally we then of course, just like we did in last lecture use this upload and on that we call single with the name of the field, and then from there we create an export our middleware, which we already included on the route.  
 exports.uploadUserPhoto = upload.single('photo');
 
 Now test it from postman.
-*/
+
+```javascript
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/img/users');
@@ -119,68 +171,79 @@ const upload = multer({
 });
 
 exports.uploadUserPhoto = upload.single('photo');
-/*
-Perfect all of our multer configuration are working but of course there is still one step missing, and that's actually to link the user to the newly updated image, because right now in the databse we obviousely still have the path or actually the name of the old imgage, because nowhere in our code we specifiec.  NEXT VIDEO
-*/
-/*
+```
 
-* lecture 200
-* Saving image name to databse.
-let's now just very quickly, save the actual name of the uploaded image to the corresponding updated user document. And doing that is actually pretty simple.
-So let's go here to the /updateMe middleware in userController, and the data that gets updated is here stored in this filteredBody object. And remember that this object here is the result of requeset.body leaving only the name and email. Now adding the photo to that as well is really simple. All we have to do is something like this:
-if(req.file) filterBody.photo = req.file.filename
-first we check if there is a request.file, then we add a photo property to the filterBody object.
+Perfect all of our multer configuration are working but of course there is still one step missing, and that's actually to link the user to the newly updated image, because right now in the database we obviously still have the path or actually the name of the old image, because now here in our code we specified.
+
+---
+
+## `Saving_image_name_to_database`
+
+Let's now just very quickly, save the actual name of the uploaded image to the corresponding updated user document. And doing that is actually pretty simple.  
+So let's go here to the /updateMe middleware in userController, and the data that gets updated is here stored in this filteredBody object. And remember that this object here is the result of request.body leaving only the name and email. Now adding the photo to that as well is really simple. All we have to do is something like this:  
+*if(req.file) filterBody.photo = req.file.filename*  
+First we check if there is a request.file, then we add a photo property to the filterBody object.
+
+```js
 const filteredBody = filterObj(req.body, 'name', 'email');
   if (req.file) {
     filteredBody.photo = req.file.filename;
   }
-So all we're doing is to add the photo property to the filteredBody object, that is going to be then update in User.findByIdAndUpdate(req.user.id, filteredBody, {...}) And the photo property is equal to the filename of the photo.
-That's it let's test it. Yeah..
+```
 
-And now just one small detail that we didn't talk about before. So,
-? What happens when we create a new user? They will not have any photo in the beginning. And so let's actually change that. So for that we have a defalut image in users folder(default.jpg), So let's go to the user model.
-  so here in the photo field, let's now define a default.
+So all we're doing is to add the photo property to the filteredBody object, that is going to be then update in User.findByIdAndUpdate(req.user.id, filteredBody, {...}) And the photo property is equal to the filename of the photo.  
+That's it let's test it. Yeah..  
+
+And now just one small detail that we didn't talk about before. So,  
+**What happens when we create a new user?** They will not have any photo in the beginning. And so let's actually change that. So for that we have a default image in users folder(default.jpg), So let's go to the user model.  
+so here in the photo field, let's now define a default.  
+
+```js
   photo: {
     type: String,
     default: 'default.jpg',
   },
+```
+
 And now let's actually go ahead and create a new user. and test it... WORKING... also update with new real photo. that's also working.
 
-Awesome, that's really great. that really feels like a real world application now. Now what if the user actually uploads a super large image, let's say 10,000 per 10000 pixels. Or even an image that's not a square at all. In that case we need to resize the image and also format the image really to fit our needs in our application. And so that's is waht we will do next...
-*/
-/*
+Awesome, that's really great. that really feels like a real world application now. Now what if the user actually uploads a super large image, let's say 10,000 per 10000 pixels. Or even an image that's not a square at all. In that case we need to resize the image and also format the image really to fit our needs in our application. And so that's is what we will do next...
 
-* lecture 201
-* Resizing Images
-In this video we learn about image processing and manipulation with NodeJs, and in this particular case, we're going to resize and convert our images. So everywhere in our user interface we assume that the uploaded images are squares, so that we can then display them with 50% border radius, this only works when they are squares. But of course in the real world usres are rarely going to be uploading images that are squares. So our job now is to actually resize images to moke them squares.
-So in userContoller we gonna that.
+---
+
+## `Resizing_Images`
+
+In this video we learn about image processing and manipulation with NodeJs, and in this particular case, we're going to resize and convert our images. So everywhere in our user interface we assume that the uploaded images are squares, so that we can then display them with 50% border radius, this only works when they are squares. But of course in the real world users are rarely going to be uploading images that are squares. So our job now is to actually resize images to moke them squares. So in userController we gonna that.  
 We'll add yet another middleware before the updateMe and then that middleware will take care of the actual image processing. let's do that right after multer, because they are kind of connected.
 
-/*
-so we defined a resizeUserPhoto middleware, and before we continue let's actually add this middleware to the middleware stack in this route(/updateMe), so that's in userRoutes. and then right after the photo has been uploaded we add..
-And so at this point we already have the file on our request, at least if there was an upload, and if there was no upload then of course we don't want to do anything that means we want to go to the next middleware directly. so if statement...
-Otherwise we want to do image resizing. And for that we are going to use the sharp package. So, first of all let's install it.
-! npm i sharp
-And require that in userController file. Sharp is a really nice and easy to use image processing library for nodeJs. And there's fairly a lot of stuff that we can do with it. But where it really shines is for resizing images in a very simple way. And so, that's exactly what we're looking for here. so let's use it....
-we say sharp, and then we basically need to pass in the file. Now when doing image processing like this right after uploading a file then it's always best to not even save the file to the disk, but instead save it to memory. so for that we need to change a little bit our multer configuration, actually just the multer storage, because now we no longer need any of this(multerStorage)
-And instead multerStorage will be simply multer.memoryStorage(), const multerStorage = multer.memoryStorage();
- So as I mentioned earlier this way the image will then be stored as a buffer, and that buffer is then available at request.file.buffer,
-So this is way more efficient, instead of having to write the file to the disk and here read it again. We simply keep the image basically in memory and then here we can read that.
-Anyway, calling the sharp function like this: sharp(req.file.buffer) will then create an object on which we can chain multiple methods in order to do our image processing. So the first one that we're going to do is resize() and then here we can specify the width and the height, and so let's say 500 and 500,  so remember we want square images so height needs to be same as width. Now this will then crop the image so that it covers this entire 500* 500 square. and actually we can change this default behavior if we wanted to. And so let's again take a quick look at the documentation. <https://sharp.pixelplumbing.com/>
-We could pass as a third parameter options object, where we could then define the fit. we could also define the position, see doc. In this case what we have is enough. So, let's move on to the next step.
-Because what I want to do next is is actually convert the images always to jpeg. and for that we use toFormat('jpeg'),
-We can also then define the quality of the this jpeg, so basically to compress it a little bit. so that it doesn't take up so much space, and so for that we use the jpeg method and set an option, in this object with quality with 90%;
-Now we're almost done, but not entirely. Because now in the end, we then finally want to write it to a file on our disk. And for that we can use toFile(), now this method here is actually needs the entire path to the file. So basically public/images/users and then file name, and the filename format we want same as we did in previous lecture, like user-userId-currentTimestamp-extension. So we save it in the request.file.filename, first. Now why we are saving it on req.file.filename =  user-${req.user.id}-${Date.now()}.${ext}; Well,it's because right now this filename is not defined. So when we decide to save the image into memory so as a buffer, the file name will not really get set, but we really need that file name in our other middleware functions. like in updateMe we use req.file.filename to update into database. Here we can get rid of ${ext} so extension, because we already know that it will always be a jpeg, so we simple put jpeg. there is no need to get the file extension. And that's actually it.
+so we defined a **resizeUserPhoto** middleware, and before we continue let's actually add this middleware to the middleware stack in this route(/updateMe), so that's in userRoutes. and then right after the photo has been uploaded we add..  
+And so at this point we already have the file on our request, at least if there was an upload, and if there was no upload then of course we don't want to do anything that means we want to go to the next middleware directly. so if statement...  
+Otherwise we want to do image resizing. And for that we are going to use the sharp package. So, first of all let's install it.  
+***npm i sharp***  
+
+And require that in userController file. Sharp is a really nice and easy to use image processing library for nodeJs. And there's fairly a lot of stuff that we can do with it. But where it really shines is for resizing images in a very simple way. And so, that's exactly what we're looking for here. so let's use it.  
+We say sharp, and then we basically need to pass in the file. Now when doing image processing like this right after uploading a file then it's always best to not even save the file to the disk, but instead save it to memory. so for that we need to change a little bit our multer configuration, actually just the multer storage, because now we no longer need any of this(multerStorage).  
+
+And instead multerStorage will be simply multer.memoryStorage(), ***const multerStorage = multer.memoryStorage();***  
+So as I mentioned earlier this way the image will then be stored as a buffer, and that buffer is then available at request.file.buffer.  
+So this is way more efficient, instead of having to write the file to the disk and here read it again. We simply keep the image basically in memory and then here we can read that.  
+Anyway, calling the sharp function like this: sharp(req.file.buffer) will then create an object on which we can chain multiple methods in order to do our image processing. So the first one that we're going to do is resize() and then here we can specify the width and the height, and so let's say 500 and 500,  so remember we want square images so height needs to be same as width. Now this will then crop the image so that it covers this entire 500 \* 500 square. And actually we can change this default behavior if we wanted to. And so let's again take a quick look at the documentation. <https://sharp.pixelplumbing.com/>  
+We could pass as a third parameter options object, where we could then define the fit. we could also define the position, see doc. In this case what we have is enough. So, let's move on to the next step.  
+Because what we want to do next is is actually convert the images always to jpeg. and for that we use toFormat('jpeg').  
+We can also then define the quality of the this jpeg, so basically to compress it a little bit. so that it doesn't take up so much space, and so for that we use the jpeg method and set an option, in this object with quality with 90%;  
+Now we're almost done, but not entirely. Because now in the end, we then finally want to write it to a file on our disk. And for that we can use toFile(), now this method here is actually needs the entire path to the file. So basically public/images/users and then file name, and the filename format we want same as we did in previous lecture, like user-userId-currentTimestamp-extension. So we save it in the request.file.filename, first. Now why we are saving it on req.file.filename =  user-${req.user.id}-${Date.now()}.${ext}; Well,it's because right now this filename is not defined. So when we decide to save the image into memory so as a buffer, the file name will not really get set, but we really need that file name in our other middleware functions. like in updateMe we use req.file.filename to update into database. Here we can get rid of ${ext} so extension, because we already know that it will always be a jpeg, so we simple put jpeg. there is no need to get the file extension. And that's actually it.  
 All we need to do now to finish is to then actually call the next middleware in the stack.
 
-NOW TEST THAT. PERFECT...
+*NOW TEST THAT. PERFECT...*
 
-[ Difference in disk and memory?
-Disk storage typically refers to non-volatile, persistent storage devices like hard disk drives (HDDs) or solid-state drives (SSDs).
-Memory, specifically RAM (Random Access Memory), is a type of volatile, temporary storage that is used by the computer's processor to store data that is actively being used or processed. - ChatGPT]
+### `Difference in disk and memory?`
 
-*/
-// Changed previous one.
+Disk storage typically refers to non-volatile, persistent storage devices like hard disk drives (HDDs) or solid-state drives (SSDs).  
+Memory, specifically RAM (Random Access Memory), is a type of volatile, temporary storage that is used by the computer's processor to store data that is actively being used or processed. - ChatGPT]  
+
+#### `Changed previous one`
+
+```javascript
 const multerStorage = multer.memoryStorage();
 
 exports.uploadUserPhoto = upload.single('photo');
@@ -202,10 +265,13 @@ exports.resizeUserPhoto = (req, res, next) => {
 
   next();
 };
-/*
+```
 
-* QUICK RECAP:
-We created a new middleware function that's going to be running right after the photo is uploaded. And that upload is now actually happening to a buffer and no longer directly to the file system so that's why we use memoryStorage();, But of curse this multer filter is still working, and so we can still only upload images, And so in resizeUserPhoto middleware  we put the image's filename on req.file.filename, so that we can then use it in the updateMe route handler. and then we've the actual image processing itself. where we first resized it to a square, then formatted to jpeg, with the quality of 90%, and finally we then write that file into our filesystem to the exact same folder that we specified before. So this is how it works when we need some image processing, but we do not need processing then of course we can keep using direactly on disk that we commented in this lec, this:
+### `QUICK RECAP`
+
+We created a new middleware function that's going to be running right after the photo is uploaded. And that upload is now actually happening to a buffer and no longer directly to the file system so that's why we use memoryStorage();, But of curse this multer filter is still working, and so we can still only upload images, And so in resizeUserPhoto middleware  we put the image's filename on req.file.filename, so that we can then use it in the updateMe route handler. and then we've the actual image processing itself. where we first resized it to a square, then formatted to jpeg, with the quality of 90%, and finally we then write that file into our filesystem to the exact same folder that we specified before. So this is how it works when we need some image processing, but we do not need processing then of course we can keep using directly on disk that we commented in this lec, this⤵:
+
+```js
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/img/users');
@@ -215,33 +281,41 @@ const multerStorage = multer.diskStorage({
     cb(null, `user-${req.user.id}-${Date.now()}.${ext}`);
   },
 });
-*/
+```
 
-/*
+---
 
-* lecture 202
-* Adding Image Uploads to Form
-So let's now allow users to uploads their photos right on our website. So when we click on 'chooose new photo', we basically want to opan a new window for which we can select a new image to upload and then when we click the 'save settigs' button and submit a form then we want to upload that image into our backend and update the user.
-And so the first step to doing that will be to add a new input element to our html, basically to our pug template, which will then allow that file selector to open when we click. So let's go to accoutn.pug file.
-right now we have a a-tag, but of course it's not a link that we're going to use, so we need:
-input(type:'file', accept='image/*'), we can then specify whihc kind of file we actually accept. we can do something like that accept='image/*' so for image with all formats. so mimetype starting with image., also give the id and name fields. Here we put name as photo, because that's the name  that we have in our user document, and it's also the field name that multer is expecting. And then we also specify the label for it.
+## `Adding_Image_Uploads_to_Form`
+
+So let's now allow users to uploads their photos right on our website. So when we click on 'choose new photo', we basically want to open a new window for which we can select a new image to upload and then when we click the 'save settings' button and submit a form then we want to upload that image into our backend and update the user.  
+And so the first step to doing that will be to add a new input element to our html, basically to our pug template, which will then allow that file selector to open when we click. So let's go to account.pug file.  
+Right now we have a a-tag, but of course it's not a link that we're going to use, so we need:  
+***input(type:'file', accept='image/\*'),*** we can then specify which kind of file we actually accept. we can do something like that **accept='image/\*'** so for image with all formats. so mimetype starting with image, also give the id and name fields. Here we put name as photo, because that's the name that we have in our user document, and it's also the field name that multer is expecting. And then we also specify the label for it.
+
+```pug
 input.form__upload(type='file', accept='image/*', id='photo', name='photo')
 label(for='photo') Choose new photo
+```
 
-Now just like before, there are two possible ways of sending this data to the server. first without the API as we did, weher weh difine the action that we want to take and also the method, and with that the data then directly sent to the server. Now If we wanted to send the file using this method we then would need  to specify another option here. and that is the enctype='multipart/form-date', So here again we have this multi-part, so as we said before multipart is always for sendong files to the server. And again we actually need the multer middleware to handle this multipart form data, And actually the name multer comes form multipart, Anywat if we wanted to send the data without an API, we would always have to specify enctype, otherwise the form would simply ignore the file and not sent.
-But we're actually using it with the API, so we do not need to specify the enctype, but we will kind of have to do it programmatically. And so let's actually do that. so lets now send our data, including photo by doing api call. open index.js form public/js folder.
+Now just like before, there are two possible ways of sending this data to the server. First without the API as we did, where we define the action that we want to take and also the method, and with that the data then directly sent to the server. Now If we wanted to send the file using this method we then would need  to specify another option here. and that is the ***enctype='multipart/form-date'***, So here again we have this multi-part, so as we said before multipart is always for sending files to the server. And again we actually need the multer middleware to handle this multipart form data, And actually the name multer comes form multipart, Anyway if we wanted to send the data without an API, we would always have to specify enctype, otherwise the form would simply ignore the file and not sent.  
+But we're actually using it with the API, so we do not need to specify the enctype, but we will kind of have to do it programmatically. And so let's actually do that. so lets now send our data, including photo by doing api call. open index.js from public/js folder.
 
-Here we actually send the data to be updated on the server, well we're not really sending them here, but we're selecting them from the form and then passing them into updateSettings. But now remember how i said that we kind of needed to programmatically recreate a multipart form data. and so we need to do it like this.  const form = new FormData();, Now onto this form we need to keep appending new data, basically one append for each of the data that we want to send. and so form.append() and the first one is the name and then the value of that name. so form.
-append('name', document.getElementById('name').value)
+Here actually we're selecting the data from the form and then passing them into updateSettings to upload in database. But now remember how I said that we kind of needed to programmatically recreate a multipart form data. And so we need to do it like this. ***const form = new FormData();***, Now onto this form we need to keep appending new data, basically one append for each of the data that we want to send. and so form.append() and the first one is the name and then the value of that name. so form.  
+
+```js
+const form = new FormData();
+
+form.append('name', document.getElementById('name').value)
 form.append('email', document.getElementById('email').value);
+```
 
-and then into updateSettings we need to pass the form. And our ajax call using axios will then actually recognize this form as an object and will work just the same as it did before. this is equivalent to what we had before with name and email, but now of course let's also add the photo which is the entire reason why we now have to do it like this.     form.append('photo', document.getElementById('photo')) this is same, but now here this not .value, but instead .files And these files are actually an array and so since there's only one, we need to select that first element from the array.
-form.append('photo', document.getElementById('photo').files[0]);
-Now just log the form to the console.
+And then into updateSettings we need to pass the form. And our ajax call using axios will then actually recognize this form as an object and will work just the same as it did before. This is equivalent to what we had before with name and email, but now of course let's also add the photo which is the entire reason why we now have to do it like this.  
+***form.append('photo', document.getElementById('photo'))*** This is same, but now here this not .value, but instead .files And these files are actually an array and so since there's only one, we need to select that first element from the array.  
+***form.append('photo', document.getElementById('photo').files[0]);***  
 But in a nutshell we basically recreate this multipart form data.
 TEST AND WORKING.
-*/
 
+```js
 // UPDATED ONE
 if (userDataForm) {
   userDataForm.addEventListener('submit', (e) => {
@@ -255,31 +329,34 @@ if (userDataForm) {
     updateSettings(form, 'data');
   });
 }
+```
 
-/*
+---
 
-* lecture 203
-* Uploading Multiple Images
-So now that the user photo upload feature is completed, let's now learn how to upload multiple files at the same time and also how to process multiple images at a time. And so in this lec and the next one we're going to be uploading and processing tour picture.
-And to start let's actually remember what kind of images we want for our tours and also how many, so let's take a look to our tourModel. so we have imageCover(1-img) and then images which is an array of strings(3-imgs),
-Now the way we're going to upload these images and process these is going to be very simila. LET'S GO TO TOURCONTROLLER
+## `Uploading_Multiple_Images`
 
-/*
-Just like before we'll store the images in memory. and also we only allow images to pass our multerFilter, And then we create our upload in the exact same way as before,
-After all these, Now, let's actually create the middleware out of this upload. And now here comes the different part, so something that going to be different to what we did in userController, because there we had upload.single() that was because we only had one single filed with a file that we wanted to upload, that was photo field.
-But now we actually have multiple files and in one of them we have one image and in the other one we have three images.  So how can we do that?
-Well, we're going to use upload.fields(), and so multer is actually perfectly capable of handling this kind of situations. so here we pass in an array and each of the element is an object where we then specify the field name. the first one is imageCover, then maxCount is 1, so that means that we can only have one field called imageCover which is then going to be processed. And then the other field in our tourModel is images, and here maxCount is 3. And in case we didn't have the imageCover, instead if that only had one field which accepts multiple images or multiple files at the same time, we could have done it like this: upload.array('images', 3)
-So when there's one image then upload.single('image'), and when there is multiple with the same name, then it's upload.array('images', 3), And when there is a mixed of them then upload.fields([{},{}]) with array, and as an element an object for each field.
+So now, that the user photo upload feature is completed, Let's now learn how to upload multiple files at the same time and also how to process multiple images at a time. And so in this lecture and the next one we're going to be uploading and processing tour picture.  
+And to start let's actually remember what kind of images we want for our tours and also how many, so let's take a look to our tourModel. so we have imageCover(1-img) and then images which is an array of strings(3-images).  
+
+Now the way we're going to upload these images and process these is going to be very similar. LET'S GO TO TOUR-CONTROLLER
+
+Just like before we'll store the images in memory. And also we only allow images to pass our multerFilter, And then we create our upload in the exact same way as before.  
+After all these, Now, let's actually create the middleware out of this upload. And now here comes the different part, so something that going to be different to what we did in userController, because there we had upload.single() that was because we only had one single filed with a file that we wanted to upload, that was photo field.  
+**But now we actually have multiple files and in one of them we have one image and in the other one we have three images.  So how can we do that?**  
+Well, we're going to use upload.fields(), and so multer is actually perfectly capable of handling this kind of situations. So here we pass in an array and each of the element is an object where we then specify the field name. The first one is imageCover, then maxCount is 1, so that means that we can only have one field called imageCover which is then going to be processed. And then the other field in our tourModel is images, and here maxCount is 3. And in case we didn't have the imageCover, instead if that only had one field which accepts multiple images or multiple files at the same time, we could have done it like this: ***upload.array('images', 3)***  
+***So when there's one image then upload.single('image'), and when there is multiple with the same name, then it's upload.array('images', 3), And when there is a mixed of them then upload.fields(\[{},{}]) with array, and as an element an object for each field.***  
 Now let's just recreate a body request from postman similar to what we specified here in upload.field(), so basically similar to what our multer upload expects, so one image cover and three images. Now we're not going to send this request that we created in postman, because we don't have any logic implemented to handler it at this point. we are not uploading into our file system, but only saving it to memory.
 
-And so just to quickly take a look at them lets actually crete our next middleware here, which is going to be the one to process these images.
-And in case we have multiple files then they will be on req.files not just file.  
-Now in order to test, all we need to do is to actually add these two new middlewares to the route handler. so in tourRoutes, and just like with the users, to keep is simple here we will only allow uploading images on a tourUpdate,
-Now test the request that we created. Of course it's not really going to do anything, it's not going to be saving these images anywhere also not updating the database, but for now we just want to see the result in the console.
-so here in console we have imageCover, assigned an array which contains an object as an elements and that element contains fieldname, originalname, encoding, mimetype,  then the buffer, and the buffer is the representation of the image in memory. Now what's import here to note, is that actually even the imageCover is an array, so when we gonna retrieve the image from teh imageCover we then will have use the first element of the array.
-And then images here is also an array, and for each of image we have an object as an array element with properties just we had in imageCover.
+And so just to quickly take a look at them lets actually crete our next middleware here, which is going to be the one to process these images.  
+And in case we have multiple files then they will be on req.files not just file.
+Now in order to test, all we need to do is to actually add these two new middlewares to the route handler. so in tourRoutes, and just like with the users, to keep is simple here we will only allow uploading images on a tourUpdate.  
+Now test the request that we created. Of course it's not really going to do anything, it's not going to be saving these images anywhere also not updating the database, but for now we just want to see the result in the console.  
+So here in console we have imageCover, assigned an array which contains an object as an elements and that element contains fieldname, originalname, encoding, mimetype,  then the buffer, and the buffer is the representation of the image in memory. Now what's important here to note, is that actually even the imageCover is an array, so when we gonna retrieve the image from the imageCover we then will have use the first element of the array.  
+And then images here is also an array, and for each of image we have an object as an array element with properties just we had in imageCover.  
 Now all we need to do is to create resizeTourImage middleware, here these images will then be processed and also save to disk. NEXT LECTURE
-*/
+
+```js
+
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = (req, file, cb) => {
@@ -305,33 +382,33 @@ exports.resizeTourImages = (req, res, next) => {
   next();
 };
 
-/*
+```
 
-* lecture 204
-* Processing Multiple Images
-Before we sart there is actually something that we need to fix in the userContoller, in resizeUserPhoto that's that we actually neet to await this whole operation of sharp, so await sharp(req.file.buffer).resize... all of these here will return a promise, that make sense becaus all of these operations here thay take some times and so of course they happen in the backgroud. Now the problem here is that right now we are calling the next() function after that, without actualy awaiting the shap operations finish, and that that's not a good idea. so await it and then catcchAsync...
+## `Processing_Multiple_Images`
+
+Before we start there is actually something that we need to fix in the userController, in resizeUserPhoto that's that we actually need to await this whole operation of sharp, so await sharp(req.file.buffer).resize... all of these here will return a promise, that make sense becaus all of these operations here they take some times and so of course they happen in the background. Now the problem here is that right now we are calling the next() function after that, without actually awaiting the sharp operations finish, and that that's not a good idea. So await it and then catchAsync...
 
 And now we're actually going to do something with our tour images.
 
 Now just as before, in case there are no images uploaded, then we want to move straight to the next middleware. And here we gonna take it one step further, by requiring that there is both the imageCover and images, basically we want to move to the next middleware in case there is no request.files.imageCover Or..
 
-let's start by processing coverImage. So where do we actually get the coverImage.
+Let's start by processing coverImage. So where do we actually get the coverImage.
 well, remember, how I said, that it's at request.files.imageCover[0]
-then, we want to resize it with 2:3 ratio, and the width will be 2000px, and the height 1333px. That's is nice 3:2 ratio which is very common in images.
-Next we also want to format it s a jpeg with 90% quality. And then save it as a file. but this time is public/image/tours, and here let's actually define our filename separately, because we're actually going to need it again. Here for id we use req.params.id, remember this route always contains the id of the tour.
-And now as a one last step, we actually need to make it possible that our updateTour handler then picks up this image cover filename to update it in the current tour document. Here to update we're using updateOne factory function. and that one will actually simply update all of the data that's in the body onto the new document. And so now the secret is to actually put this imageCover file on the request.body, So, req.body.imageCover = imageCoverFilename; here we could small refactor by putting req.body.imageCoven when defining the filename, like this:
-  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
-Great now before moving on to the other images, let's actually test it with what we already have at this point.   Yes it's working for imageCover
+then, we want to resize it with 2:3 ratio, and the width will be 2000px, and the height 1333px. That's is nice 3:2 ratio which is very common in images.  
+Next we also want to format it s a jpeg with 90% quality. And then save it as a file. But this time is public/image/tours, and here let's actually define our filename separately, because we're actually going to need it again. Here for id we use req.params.id, remember this route always contains the id of the tour.  
+And now as a one last step, we actually need to make it possible that our updateTour handler then picks up this image cover filename to update it in the current tour document. Here to update we're using updateOne factory function. and that one will actually simply update all of the data that's in the body onto the new document. And so now the secret is to actually put this imageCover file on the request.body, So, req.body.imageCover = imageCoverFilename; here we could small refactor by putting req.body.imageCoven when defining the filename, like this:  
+***req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;***  
+Great now before moving on to the other images, let's actually test it with what we already have at this point.   Yes it's working for imageCover.  
 
-Now images are also an array, which then contain all of other new file uploads. So, let's now use a loop to precess each of them in one iteration. we use foreach and then in our callback function we get access to the current file.
+Now images are also an array, which then contain all of other new file uploads. So, let's now use a loop to process each of them in one iteration. We use forEach and then in our callback function we get access to the current file.
 
-  here we need to create the current filename, because here we want to name as image with 1 -> 2 then 3. So in our callback function we also get access to the current index.
-  Next up comes the processing step itself, which is again very similar to previous ones.
-  And now why do we actually need this filename, well because we need to push this filename into request.body.images, Remember in our tourModel req.body.images is an array. and now we need to create that array, so start with empty array. req.body.images = []; And then in each iteration, we will then push the current filename to this array. req.body.images.push(filename);
-  And with this we're almost done. There is just one small problem, which is the fact that we're actually not using async await correctly here in this case, so in this loop. This async await here is only inside of the callback function of the foreach loop, and that will actually not stop the code from moving right next to the next() middleware. So right now we're actually not awaiting any of these sharp, because this async/await happens inside of the callback function one of these loop methods. And we run into this kind of problem actually before. But there is fortunately a solution for this. because since this(callback of foreach) is an async function here It will return a promise. So if we do a map we can actually save an array of all of these promises. And then if we have an array we can use promise.all to await all of them. And so with that we will them actually await until all this code(all these image processing) is done.  and only then move on to the next line, which is calling the next middleware.  Let's now use promise.all,    We will not save an array which is returned by map function in to variable, instead we'll use simple promise.all on entire.
-  READY TO TEST, yes working...
+Here we need to create the current filename, because here we want to name as image with 1 -> 2 then 3. So in our callback function we also get access to the current index.  
+Next up comes the processing step itself, which is again very similar to previous ones.  
+And now why do we actually need this filename, well because we need to push this filename into request.body.images, Remember in our tourModel req.body.images is an array. And now we need to create that array, so start with empty array. req.body.images = []; And then in each iteration, we will then push the current filename to this array. req.body.images.push(filename);  
+And with this we're almost done. There is just one small problem, which is the fact that we're actually not using async await correctly here in this case, so in this loop. This async await here is only inside of the callback function of the forEach loop, and that will actually not stop the code from moving right next to the next() middleware. So right now we're actually not awaiting any of these sharp, because this async/await happens inside of the callback function one of these loop methods. And we run into this kind of problem actually before. But there is fortunately a solution for this. Because since this(callback of forEach) is an async function here It will return a promise. So if we do a map we can actually save an array of all of these promises. And then if we have an array we can use promise.all to await all of them. And so with that we will them actually await until all this code(all these image processing) is done. And only then move on to the next line, which is calling the next middleware. Let's now use promise.all, We will not save an array which is returned by map function in to variable, instead we'll use simple promise.all on entire.  
+READY TO TEST, yes working...
 
-*/
+```js
 exports.resizeTourImages = catchAsync(async (req, res, next) => {
   if (!req.files.imageCover || !req.files.images) {
     return next();
@@ -367,16 +444,17 @@ exports.resizeTourImages = catchAsync(async (req, res, next) => {
   console.log(req.body);
   next();
 });
-/*
 
-* QUICK RECAP: 30/11/2023 [2:23 AM]
-So, we created a multer upload using the memory storage and this filter only for images, then we created the uploadTourImages middleware by using upload.fields, which takes in one image cover and three imags, and then on the request it will put the files property. Then in our next middleware we resize these images and first the cover image, then the remaining three images. What really point to noted is to how we put the image filename on request.body, and we do that so that in the next middleware, which is the actual route handler, it will then put that data onto the new document when it upload it. so we do that with the imageCover, and we also do that with the remaining images by pushing it into body images, which as know from our tour schema expects an array of strings and so in this case, filenames. So about these other images, we had them on request.files.images, so it's an array, and so of course we loop through it using map method. And we use map so that we can basically save the three promises which are the result of that three asycn function in map method, so we can then await all of them here using Promise.all(), And only after that we then move on to the actual tour update handler, and this part is really important. So it's importat that we only move on to the next middleware as soon as this part here(all codes in map method) is completed, because otherwise req.body.images will  be empty, and of course our filenames are then not gonna be saved to the current tour document.
-*/
+```
 
-/*
+### `QUICK RECAP: 30/11/2023 [2:23 AM]`
 
-* lecture 205
-* Building a Complex Email Handler
+So, we created a multer upload using the memory storage and this filter only for images, then we created the uploadTourImages middleware by using upload.fields, which takes in one image cover and three images, and then on the request it will put the files property. Then in our next middleware we resize these images and first the cover image, then the remaining three images. **What really point to noted is to how we put the image filename on request.body, and we do that so that in the next middleware,** which is the actual route handler, it will then put that data onto the new document when it upload it. so we do that with the imageCover, and we also do that with the remaining images by pushing it into body images, which as know from our tour schema expects an array of strings and so in this case, filenames. So about these other images, we had them on request.files.images, so it's an array, and so of course we loop through it using map method. And we use map so that we can basically save the three promises which are the result of that three async function in map method, so we can then await all of them here using Promise.all(), And only after that we then move on to the actual tour update handler, and this part is really important. So it's important that we only move on to the next middleware as soon as this part here(all codes in map method) is completed, because otherwise req.body.images will  be empty, and of course our filenames are then not gonna be saved to the current tour document.
+
+---
+
+## `Building_a_Complex_Email_Handler`
+
 With the file upload part is finished, let's now turn our attention to sending emails. And we actually already sent email before for the password reset. But in the next couple of lectures we're gonna take that to a whole new level. And what we're gonna do is to build email templates with pug and sending real emails using the SendGrid service.
 And now in this first lecture we're gonna build a more robust email handler then one that we had before. So, let's open up our utilities folder, and here we already have email.js, But right now what we have here is just a very simple email sending handler, which is not able to take in a lot of options. And so now we're going to build a much more robust solution here.
 /*
