@@ -12,6 +12,13 @@ In this one we will make our website in API even better by implementing advanced
 6. [Uploading_Multiple_Images](#uploading_multiple_images)
 7. [Processing_Multiple_Images](#processing_multiple_images)
 8. [Building_a_Complex_Email_Handler](#building_a_complex_email_handler)
+9. [Email_Templates_with_Pug__Welcome_Emails](#email_templates_with_pug__welcome_emails)
+10. [Sending_Password_Reset_Emails](#sending_password_reset_emails)
+11. [Using_Sendgrid_for__Real_Emails](#using_sendgrid_for__real_emails)
+12. [Credit_Card_Payments_with_Stripe](#credit_card_payments_with_stripe)
+13. [Integration_Stripe_into_the_Back-End](#integration_stripe_into_the_back-end)
+14. [Processing_Payments_on_the_Front-End](#processing_payments_on_the_front-end)
+15. [Modelling_the_Bookings](#modelling_the_bookings)
 
 ## `Image_Uploading_using_Multer`
 
@@ -455,34 +462,47 @@ So, we created a multer upload using the memory storage and this filter only for
 
 ## `Building_a_Complex_Email_Handler`
 
-With the file upload part is finished, let's now turn our attention to sending emails. And we actually already sent email before for the password reset. But in the next couple of lectures we're gonna take that to a whole new level. And what we're gonna do is to build email templates with pug and sending real emails using the SendGrid service.
+With the file upload part is finished, let's now turn our attention to sending emails. And we actually already sent email before for the password reset. But in the next couple of lectures we're gonna take that to a whole new level. And what we're gonna do is to build email templates with pug and sending real emails using the SendGrid service.  
 And now in this first lecture we're gonna build a more robust email handler then one that we had before. So, let's open up our utilities folder, and here we already have email.js, But right now what we have here is just a very simple email sending handler, which is not able to take in a lot of options. And so now we're going to build a much more robust solution here.
-/*
-So what I'm gonna do is to create a class, that class is gonna be called email, also we are exporting this class from this file. And then as always, a class needs a constructor function, which is basically the function that is gonna be running when a new object is created through this class.
-Now let's actually take a look at how we would use this class in practice. And so the idea, basically whenever we want to send a new email, is to import this email class and then use it like this:
-new Email(user, url).sendWelcome(), So creating a new email, and then into it we want to pass in a user, and this user will contain the email address, and also the name in case we want to personalize the email, and also the URL, And a good example  for this one is for example the reset url for resetting the password. So, a new email object, and then on there we want to call the method that is actually going to send the email, let's say sendWelcome, and so that one is gonna be sent whenever a new user signup for our application. We will then also have send password reset. And the way we will set all this up will make it really easy to then keep adding new and new methods similar to these ones to send different emails for different scenarios.
-Anyway, since we passing the user and the url into a new email, so our constructor then needs to take these in as arguments. this.to will be equal to user.email, and we also want to define the first name of the user in order to basically personalize the email. Also this.url = incoming url, and finally also set this.from right here, so basically at the object level, And so each object created from this class will then get this property.
-Now one thing that I really  want to do is basically define this email(our email) address as a configuration variable, so an environment variable that we can very easily change by manipulating the config.env file. EMAIL_FROM=<muhammadugv66@gmail.com>
-Next up, let's create a method here, in order to create the transport, similar to what we had before. And here we actually want to have different transports whether we are in production or not. So when we're in production, we actually want to send real emails, and we will do that a bit later using SendGrid, but if we are not in production then we still want to use our Mailtrap application. So instead of the email going to a real email address it will get caught into our mailtrap inbox, so that  we can actually take a look at it. Now this transporter method here returns a new nodemailer transport, that we created like this nodemailer.createTransport({}), Or on the other hand when we're in production  then the one that's we'll implement later.
-Now lets create the send method, And so this is gonna be the method that will do the actual sending. And this one will receive a template and a subject.  why we need the template and the subject here? So remember how we said in the beginning that we're gonna have one method called sendWelcome, and also one method for sending a reset password email. so let's also add this two methods.
-The sendWelcome method will not take any arguments, all it really does is to call send with the template and the subject that we want for this email, so this makes it really easy to send different emails for all kind of different situations. So we have one generic/general send function and then all of others are more specific ones, like sendWelcome etc. This template name we put here in send will be a pug template that we're gonna create. sendWelcome() {
+
+So what we're gonna do is to create a `Class`, that class is gonna be called `Email`, also we are exporting this class from this file. And then as always, a class needs a constructor function, which is basically the function that is gonna be running when a new object is created through this class.  
+Now let's actually take a look at how we would use this class in practice. And so the idea, basically whenever we want to send a new email, is to import this email class and then use it like this:  
+***new Email(user, url).sendWelcome()***, So creating a new email, and then into it we want to pass in a user, and this user will contain the email address, and also the name in case we want to personalize the email, and also the URL, And a good example  for this one is for example the reset url for resetting the password. So, a new email object, and then on there we want to call the method that is actually going to send the email, let's say sendWelcome, and so that one is gonna be sent whenever a new user sign-up for our application. We will then also have send password reset. And the way we will set all this up will make it really easy to then keep adding new and new methods similar to these ones to send different emails for different scenarios.  
+Anyway, since we passing the user and the url into a new email, so our constructor then needs to take these in as arguments. `this.to will be equal to user.email`, and we also want to define the first name of the user in order to basically personalize the email. Also `this.url = incoming url`, and finally also set this.from right here, so basically at the object level, And so each object created from this class will then get this property.
+
+Now one thing that I really want to do is basically define this Email(our email) address as a configuration variable, so an environment variable that we can very easily change by manipulating the config.env file. EMAIL_FROM=<muhammadugv66@gmail.com>  
+
+Next up, let's create a method here, in order to create the transport, similar to what we had before. And here we actually want to have different transports whether we are in production or not. So when we're in production, we actually want to send real emails, and we will do that a bit later using SendGrid, but if we are not in production then we still want to use our Mailtrap application. So instead of the email going to a real email address it will get caught into our mailtrap inbox, so that we can actually take a look at it. Now this transporter method here returns a new nodemailer transport, that we created like this nodemailer.createTransport({}), Or on the other hand when we're in production then the one that's we'll implement later.  
+Now lets create the send method, And so this is gonna be the method that will do the actual sending. And this one will receive a template and a subject. **Why we need the template and the subject here?** So remember how we said in the beginning that we're gonna have one method called sendWelcome, and also one method for sending a reset password email. so let's also add this two methods.  
+The sendWelcome method will not take any arguments, all it really does is to call send with the template and the subject that we want for this email, so this makes it really easy to send different emails for all kind of different situations. So we have one generic/general send function and then all of others are more specific ones, like sendWelcome etc. This template name we put here in send will be a pug template that we're gonna create.
+
+```js
+sendWelcome() {
     this.send('welcome', 'Welcome to the Natours Family');
-  } // just like this we don't need to worry about any implementation details when we're actually sending the email.
+  } 
+// just like this we don't need to worry about any implementation details when we're actually sending the email.
+```
 
-Anyway, let's now actually then build this send function, And so what we're gonna do in this function is to (1) first render the HTML for the email based on a pug template.  (2) Then define the email options. (3)And then finally create a transport and send email.
-So starting with point(1), And usually up until this point, we only ever use pug to create a template then we pass the name of the template into the render function on the response, so just like this, res.render('nameOfTemplate'), And what this render function does behind the scenes is to basically create the html, based on the pug template and then send it to the client. Now in this case we do not want to render, all we want to do is to basically create the html out of the template so that we can then send that html as the email. So basically defining it here as an option in mailOptions, with html property. We are interested in sending an html email. And so that's why we're gonna have a pug template from which we will generate this html. So we need to require the pug package here in the email.js file. And then we need to use pug.renderFile(),So this will take in a file and render the pug code into real html. So that we can then save into a variable html.  So where is that template file?  well it's at __dirname, which remember is the location of the currently running script, so that is right now 'utils' folder. so from there we need to go one step up, then into views, then emails folder and in there we're have a template file, so ${template.pug} like this:     const html = pug.renderFile(`${__dirname}/../views/emails/${template}.pug`); So for the welcome email, this template is gonna be called welcome, and remember this template variable is one that we passed in send method, And so let's now actually create that welcome template in the views/emails.
+Anyway, let's now actually then build this send function, And so what we're gonna do in this function is to: (1) First **render the HTML for the email** based on a pug template.  (2) Then **define the email options**. (3)And then finally **create a transport and send email**.
 
-(2) That's the first step, Next up, let's define the email options, so from is now, this.from, also to is this.to, and subject is equal to the subject that's coming in, and we have our html, which is html. Next we also want to include the text version of our email into the email, and that's actually really important because it's better for email delivery rates and also for spam folders. And also some people just prefer plain simple tex emails instead of having the more formatted html emails. And so basically we need a way of converting all the html to simple text, so stripping out all of the html leaving only the content. And for doing that, we are going to install yet another package, and so this one is called html-to-text So,
-! npm i html-to-text
-let's include that here in email.js file, and then use that to convert that html to text.  we use fromString method and here html is stored in html.
-And actually I forgot something very, very important in the step(1) so in the render file, because just like with res.render we can also pass data into render file, and of course that's very important if we want to actually do our email personalization with the name and also passed in the url. And so let's do it just like we did normally in the render function.so with an object. so we also send firstName, url and subject to the template.
+So starting with point(1), And usually up until this point, we only ever use pug to create a template then we pass the name of the template into the render function on the response, so just like this, res.render('nameOfTemplate'), And what this render function does behind the scenes is to basically create the html, based on the pug template and then send it to the client. Now in this case we do not want to render, all we want to do is to basically create the html out of the template so that we can then send that html as the email. So basically defining it here as an option in mailOptions, with html property. We are interested in sending an html email. And so that's why we're gonna have a pug template from which we will generate this html. So we need to require the pug package here in the email.js file. And then we need to use pug.renderFile(),So this will take in a file and render the pug code into real html. So that we can then save into a variable html. **So where is that template file?** Well it's at `__dirname`, which remember is the location of the currently running script, so that is right now 'utils' folder. so from there we need to go one step up, then into views, then emails folder and in there we're have a template file, so ${template.pug} like this: const html = pug.renderFile(`${__dirname}/../views/emails/${template}.pug`); So for the welcome email, this template is gonna be called welcome, and remember this template variable is one that we passed in send method, And so let's now actually create that welcome template in the views/emails.
+
+(2) That's the first step, Next up, let's define the email options, so from is now, this.from, also to is this.to, and subject is equal to the subject that's coming in, and we have our html, which is html. Next we also want to include the text version of our email into the email, and that's actually really important because it's better for email delivery rates and also for spam folders. And also some people just prefer plain simple tex emails instead of having the more formatted html emails. And so basically we need a way of converting all the html to simple text, so stripping out all of the html leaving only the content. And for doing that, we are going to install yet another package, and so this one is called html-to-text So,  
+***npm i html-to-text***  
+
+let's include that here in email.js file, and then use that to convert that html to text.  we use fromString method and here html is stored in html.  
+
+And actually I forgot something very, very important in the step(1) so in the render file, because just like with res.render we can also pass data into render file, and of course that's very important if we want to actually do our email personalization with the name and also passed in the url. And so let's do it just like we did normally in the render function.so with an object. so we also send firstName, url and subject to the template.  
+
 (3), Now let's finally create a transport using our newTransport function and then send the email. that's this.newTransport(), basically newTransport() method is already created so we just call that, and on to that we chain sendMail method and pass in mailOptions. then we need to await all of these, because it's an async function. so mark the send() method as async, so we can await. Now we also need to await the function here from sendWelcome, because this.send() is now indeed an async function.
-That's actually it, for this class. And so in the next video we will then actually go ahead use this class in order to send a welcome email.
 
-* QUICK RECAP:
-We created a new email class from which we can create email objects that we can then use to send actual emails. And to create a new email object we will pass in the user and also a url, that we want to be that email, so then all user's stuff and url to the current object and also some other settings that we want to have available such as this.from to inform about sender.   Then we've a newTransport function which makes it really easy to create different transports for different environments. And so once more, abstracting that logic away from the actual send function which should only be concerned about sending the email. After that we have send function which takes in a template and a subject, and based on that i creates the html from a pug template which will then be set into the email options, which will at the end of the function, finally sent. But it's not going to be this send function that we will use in our code. So instead we're going to be creating one different function for each type of email that we want to send. And the first one that we created here is the sendWelcome. So sendWelcome will basically the preset the template name as welcome and as the subject as string that we pass.
+That's actually it, for this class. And so in the next lecture we will then actually go ahead use this class in order to send a welcome email.
 
-*/
+### `QUICK RECAP:`
+
+We created a new email class from which we can create email objects that we can then use to send actual emails. And to create a new email object we will pass in the user and also a url, that we want to be that email, so then all user's stuff and url to the current object and also some other settings that we want to have available such as this.from to inform about sender. Then we've a newTransport function which makes it really easy to create different transports for different environments. And so once more, abstracting that logic away from the actual send function which should only be concerned about sending the email. After that we have send function which takes in a template and a subject, and based on that i creates the html from a pug template which will then be set into the email options, which will at the end of the function, finally sent. But it's not going to be this send function that we will use in our code. So instead we're going to be creating one different function for each type of email that we want to send. And the first one that we created here is the sendWelcome. So sendWelcome will basically the preset the template name as welcome and as the subject as string that we pass.
+
+```js
 // email.js file(till now)
 const nodemailer = require('nodemailer');
 const pug = require('pug');
@@ -541,30 +561,34 @@ module.exports = class Email {
   }
 };
 
-/*
+```
 
-* lecture 206
-* Email Temaplates with Pug_ Welcome Emails
-So in this video we're gonna use the power of pug to create a really nice email template and then send a welcome eamil based on that template. that template is welcome.pug.
-? I use this link, and get the built in link,  <https://github.com/leemunroe/responsive-html-email-template> Then I converted that html using this tool <https://html2pug.vercel.app/> to pug,
+---
 
-Anyway, when we're building an html email, we always need to inline all the styles. As here we have, we'll export it to the _style.pug file, and will include it in welcome using include_style.
-Here this welcome.pug file there is lot of tables,  because we copied this code from git repo. In there we have //CONTENT  that is the part we're gonna put all our content.
-Now the thing is that we of course, will have many different templates and in case of this project we will actually only two ourselves, but there might be many emails for many situations, And so of course we will a way of reusing all of these codes that is of this CONTENT, Basically all of pug codes, except that are in CONTENT should be reusable. And actually that's exactly what we did before with our base template. so we put everything that is reusable for all the templates inside of the base, then we have to block there and all the other templates. Then simply extend that block. And so that's exactly what we will do now. so create a new template called baseEmail, put all codes into the baseEmail and then cut the content from there, and there create a block called content again. And then in welcome we put that content inside content block. and say extends baseEmail,
-Here in baseEmail we have title tag so we need to change it to the subject that we passed into the template,  remember into the template we passed the subject, url and the firstName, so here we put the subject. Now change all other stuff with the things that we passed in. like name etc.
+## `Email_Templates_with_Pug__Welcome_Emails`
+
+So in this lecture we're gonna use the power of pug to create a really nice email template and then send a welcome Email based on that template. that template is welcome.pug.  
+I use this link, and get the built in link,  <https://github.com/leemunroe/responsive-html-email-template> Then I converted that html using this tool <https://html2pug.vercel.app/> to pug,
+
+Anyway, when we're building an html email, we always need to inline all the styles. As here we have, we'll export it to the _style.pug file, and will include it in welcome using include_style.  
+Here this welcome.pug file there is lot of tables, because we copied this code from git repo. In there we have //CONTENT  that is the part we're gonna put all our content.  
+Now the thing is that we of course, will have many different templates and in case of this project we will actually only two ourselves, but there might be many emails for many situations, And so of course we will a way of reusing all of these codes that is of this CONTENT, Basically all of pug codes, except that are in CONTENT should be reusable. And actually that's exactly what we did before with our base template. so we put everything that is reusable for all the templates inside of the base, then we have to block there and all the other templates. Then simply extend that block. And so that's exactly what we will do now. so create a new template called baseEmail, put all codes into the baseEmail and then cut the content from there, and there create a block called content again. And then in welcome we put that content inside content block. and say extends baseEmail,  
+Here in baseEmail we have title tag so we need to change it to the subject that we passed into the template,  remember into the template we passed the subject, url and the firstName, so here we put the subject. Now change all other stuff with the things that we passed in. like name etc.  
 Completed, so this welcome template will use whenever we call sendWelcome method. So let's now go ahead and do that.
 
-? So from where do we want to send the welcome email?
-well that's in the authController and then signup function. So there we need to import the Email and then use it.
-/*
-  so here in signup function, let's now use this Email class, so new Email(), and remember the first parameter is the user, which is the newUser,  and url, which we gonna create in a second. And then chain call sendWelcome method, And now all we need to do is to actually await this sendWelcome function, because send welcome is an async function, And so when we actually await it, we then wait until it finishes.
-  ? Now to specify url, What URL do we actually want here?
-  well, remember in then button, where we want put this url, it says 'Upload user photo', So basically we want to point to that user account page, <http://127.0.0.1:3000/me> so right here, from there we a user can then change their photo. We could put hard code by just copy and past this url, but then it would only work in development, So instead of hard coding we will get this data from the request. So basically we will bet what protocol we are using, and then also the host. let's replace. to get host we need to to get function, and there pass the host as a string.
-  And now let's actually test it. All we need to do for that is to just create a new user using signup from post man. Now when we create this new user then we should get a new Mailtrap,
-  ! So previously i mailtrap was not working because in auth we put password instead of pass. now correct is: pass: process.env.EMAIL_PASSWORD, Now this time we got a new message in mailtrap, with our formatted message. Also we had one more error while converting html email to plan text, we used formString method, but it's no more on html-to-text, so instead we should use htmlToText.convert(html) method. -Fixed by me
-  GREAT GREAT GREAT, And it actually looks really nice. Also this button 'Upload User Photo' also working, It takes us to our accout page.  
-  Remember I doesn't work on our website because we don't have any signup form on our website.
-*/
+**So from where do we want to send the welcome email?**
+Well that's in the authController and then signup function. So there we need to import the Email and then use it.  
+so here in signup function, let's now use this Email class, so new Email(), and remember the first parameter is the user, which is the newUser,  and url, which we gonna create in a second. And then chain call sendWelcome method, And now all we need to do is to actually await this sendWelcome function, because send welcome is an async function, And so when we actually await it, we then wait until it finishes.  
+
+**Now to specify url, What URL do we actually want here?**  
+Well, remember in then button, where we want put this url, it says 'Upload user photo', So basically we want to point to that user account page, <http://127.0.0.1:3000/me> so right here, from there we a user can then change their photo. We could put hard code by just copy and past this url, but then it would only work in development, So instead of hard coding we will get this data from the request. So basically we will bet what protocol we are using, and then also the host. let's replace. to get host we need to to get function, and there pass the host as a string.  
+And now let's actually test it. All we need to do for that is to just create a new user using signup from postman. Now when we create this new user then we should get a new Mailtrap.  
+So previously i mailtrap was not working because in auth we put password instead of pass. now correct is: pass: process.env.EMAIL_PASSWORD, Now this time we got a new message in mailtrap, with our formatted message. Also we had one more error while converting html email to plan text, we used formString method, but it's no more on html-to-text, so instead we should use htmlToText.convert(html) method. -Fixed by me  
+
+GREAT GREAT GREAT, And it actually looks really nice. Also this button 'Upload User Photo' also working, It takes us to our account page.  
+*Remember It doesn't work on our website because we don't have any signup form on our website.*
+
+```js
 
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create(req.body);
@@ -577,29 +601,43 @@ exports.signup = catchAsync(async (req, res, next) => {
   createSendToken(newUser, 201, res);
 });
 
-/*
+```
 
-* lecture 207
-* Sending Password Reset Emails
-let's now very quickly also send emails for password reset, and that email will be very similar to the one that we built. let's just go ahead and copy and paste into a new file called passwordReset.pug, and change the some content.
-Now next up, let's actually create the sending function in email class just we built for Sendwelcome(),
+---
+
+## `Sending_Password_Reset_Emails`
+
+Let's now very quickly also send emails for password reset, and that email will be very similar to the one that we built. let's just go ahead and copy and paste into a new file called passwordReset.pug, and change the some content.  
+Now next up, let's actually create the sending function in Email class just we built for Sendwelcome(),
+
+```js
+
 async sendPasswordReset() {
     await this.send(
       'passwordReset',
       'Your password reset Token (valid for only 10 minutes)'
     );
   }
+
+```
+
 Now as a final step we need to call this method, so In our authController in forget password.
+
+```js
  try {
     const resetURL = `${req.protocol}://${req.get(
       'host'
     )}/api/v1/users/resetPassword/${resetToken}`;
     await new Email(user, resetURL).sendPasswordReset();
  }
-LET'S TEST THIS, yeah we get a mail on mailtap. And copy that url from there and paste to reset passwrod, and remember that url will contain the token, OKK, Yes that's also working. Now try to loging with new passwrod, YEAH ALSO WORKING...
+```
 
-At this point all our emails are actually getting courght in mailtrap, and so that's because in development mode, we don't want to leak these email to real users. Also we would have no way of taking a look at these emails if they would really end up in our real users email inboxes.  However in the next video we'll then start to send real emails so emails to real email addresses which will then endup in their inboxes.  
-*/
+LET'S TEST THIS, yeah we get a mail on mailtrap. And copy that url from there and paste to reset password, and remember that url will contain the token, OKK, Yes that's also working. Now try to logging with new password, YEAH ALSO WORKING...
+
+At this point all our emails are actually getting caught in mailtrap, and so that's because in development mode, we don't want to leak these email to real users. Also we would have no way of taking a look at these emails if they would really end up in our real users email inboxes.  However in the next lecture we'll then start to send real emails so emails to real email addresses which will then end up in their inboxes.  
+
+```js
+
 async sendPasswordReset() {
   await this.send(
     'passwordReset',
@@ -607,73 +645,74 @@ async sendPasswordReset() {
   );
 }
 
-/*
+```
 
-* lecture 208
-* Using Sendgrid for _Real Emails
+---
+
+## `Using_Sendgrid_for__Real_Emails`
+
 So let's now use the sendgrid service in order to send real emails to real inboxes, rather than to our development inbox at mailtrap.
 
-! COULD'T SIGNUP, TRY IT...
+Here we use nodemailer.createTransport(), and remember how i told when we first created this email handler, that there are some services that are already predefined. and SendGrid is is one of them.  so we can specify service and then 'SendGrid', we already did this before for gmail. and with that all we needed to then pass in the username and password. Here it's going to the exactly the same. And that's the reason why we actually don't even need to specify the server and the port, because nodemailer already knows this data because we specifying SendGrid service.  
+And now to test this let's create a new user with a real email address.
 
-* just for now.
-go to the email.js and then newTronasport()
+TRY TO SIGNUP ON SENDGRID, HERE USED JONAS'S TOKEN, BUT WORKING AT ALL.... SO TRY TRY TRY...............
 
-/*
-  here we use nodemailer.createTransport(), and remember how i told when we first created this email handler, that there are some services that are already predefined. and SendGrid is is one of them.  so we can specify service and then 'SendGrid', we already did this before for gmail. and with that all we needed to then pass in the username and password. Here it's going to the exactly the same. And that's the reason why we actually don't even need to specify the server and the port, because nodemailer already knows this data because we specifying SendGrid service.
-  And now to test this let's create a new user with a real email address.
-
-  ! TRY TO SIGNUP ON SENDGRID, HERE USED JONAS'S TOKEN, BUT WORKING AT ALL.... SO TRY TRY TRY...............
-
-  */
+```js
   // BOOKING ROUTES FILES
-  newTransport() {
-    if (process.env.NODE_ENV === 'production') {
-      // SendGrid
-      return nodemailer.createTransport({
-        service: 'SendGrid',
-        auth: {
-          user: process.env.SENDGRID_USERNAME,
-          pass: process.env.SENDGRID_PASSWORD,
-        },
-      });
-    }
+newTransport() {
+  if (process.env.NODE_ENV === 'production') {
+    // SendGrid
+    return nodemailer.createTransport({
+      service: 'SendGrid',
+      auth: {
+        user: process.env.SENDGRID_USERNAME,
+        pass: process.env.SENDGRID_PASSWORD,
+      },
+    });
   }
+}
 
-/*
+```
 
-* lecture 209
-* Credit Card Payments with Stripe
-In this last part of the section we're now gonna accept credit card payments in our application using Stripe in order to allow users to actually buy tours.
-So stripe is the best and most popular and also easiest to use software platform to integrate payments into ony website.Signup Now stripe account is in test moode, as soon as we really want to start accepting real payments involving real money from real customers, then we'll have to activate stripe account, for that we will then have to provide stipe with a bunch of data about your business. But of course in this buisiness we're nto gonna do that. so we'll always just work in this kind of test development mode. In test dashboad we can see all our transitions, just fake amount, all payments methos, credit card number, And by the way, we actually never do get access to the reall credit card number of the customer, we will always just see last four digits. we can also see the entire blance...
+## `Credit_Card_Payments_with_Stripe`
 
-Before get started we need to define couple of settings about our account.  like change branding, which will make the stripe checkout pages match our brand, like change icon color.
-Now click on get API key, so there will on publishable key and one secret key. So publishable key is basically a public key, that we can use on the front-end, and a secret key is the one that is needed on the back-end.
-Finally take a quick look at the documentaion. It's really easy to find what we needed, using their documentation.
-We're gonna use the payment features of Stripe, and they have a couple of differnet options. Now on the web, we can use 'Stripe Checkout', which is basically using a performated checkout page. Or we can also use 'Stripe Elements' when we really want to build our own checkout experience. But we'll just use the checkout, which is actually brand new, so it's really future-proof at this point. Then from checkout we can use it on only the client or together with the server. So when we only use it on the client side, then we don't even need a server at all. But this way of using Stripe is only really really small stores. we want something a bit complex, so for that, we use server integration. And so, of course we still need to do something on the client side, but most of the code will actually be on the server side.
-Alright, but now before we actually start to integrate the stripe checkout product into our app, I just wanted to quickly layout the entire workflow that we're gonna implement over the next couple of videos. So,
-It all starts on the back-end where we're gonna implement a route to create a so-called Stripe Checkout Session. And this Session is gonna contain a bunch of data about the object that can be purchased. In our example that's the tour, So the session will contain the tourPrice, the tour name, a product image, and also some other details like client emai.
-Then on the front-end we're gonna create a function to request the Checkout Session from the server once the user clicks the buy button. So once we hit the end point that we created on the backend, that will then create a Session and send it back to the client. Then based on that Session, Stipe will automaticallly create a checkout page for us where the user can then input all the details like creadit card number, expiration date, and all that. Then again using that session, we will finally charge the credit card, And for that, we're gonna need the public key, so the one that we just saw before,  So the secret key we will need on the server as we see up there in the first step and the public key is gonna be used on the front-end. And what's really important to note here is that it's really Stripe, which will together with the session, charge the credit card, and so therefore the credit card details never even reach our server, which makes our lives as a developers a lot easier because we dont have to deal with all the security stuff that's related with managing and storing credit cards, So stripe takes all that away from us, we basically just use their API like this.
-Anyway once the credit card has successfully been charged, we can then use something called Stirpe Webhooks on our back-end, in order to create new bookings. Now this part of the workflow will only work for deployed websites, so websites that are already running on a server. And so this part of our workflow, we're only gonna be able to implement by the end of the next section. But for now, we'll actually find a temporary work-around to this, which is not really secure, but it's gonna work just fine for now. Soo keep this diagram in mind also this concepts that we actually use the session to charge a credit card and we don't really do that directly.
+In this last part of the section we're now gonna accept credit card payments in our application using `Stripe` in order to allow users to actually buy tours.  
+So stripe is the best and most popular and also easiest to use software platform to integrate payments into ony website. Signup Now stripe account is in test mode, as soon as we really want to start accepting real payments involving real money from real customers, then we'll have to activate stripe account, for that we will then have to provide stipe with a bunch of data about your business. But of course in this business we're not gonna do that. So we'll always just work in this kind of test development mode. In test dashboard we can see all our transitions, just fake amount, all payments methods, credit card number, And by the way, we actually never do get access to the real credit card number of the customer, we will always just see last four digits. we can also see the entire balance...
 
-! See pdf (STRIPE WORKFLOW)
-*/
+Before get started we need to define couple of settings about our account. Like change branding, which will make the stripe checkout pages match our brand, like change icon color.  
+Now click on get API key, so there will on publishable key and one secret key. So publishable key is basically a public key, that we can use on the front-end, and a secret key is the one that is needed on the back-end.  
+Finally take a quick look at the documentation. It's really easy to find what we needed, using their documentation.  
+We're gonna use the payment features of Stripe, and they have a couple of different options. Now on the web, we can use 'Stripe Checkout', which is basically using a preformatted checkout page. Or we can also use 'Stripe Elements' when we really want to build our own checkout experience. But we'll just use the checkout, which is actually brand new, so it's really future-proof at this point. Then from checkout we can use it on only the client or together with the server. So when we only use it on the client side, then we don't even need a server at all. But this way of using Stripe is only really really small stores. we want something a bit complex, so for that, we use server integration. And so, of course we still need to do something on the client side, but most of the code will actually be on the server side.  
 
-/*
+Alright, but now before we actually start to integrate the stripe checkout product into our app, I just wanted to quickly layout the entire workflow that we're gonna implement over the next couple of videos. So,  
+It all starts on the back-end where we're gonna implement a route to create a so-called Stripe Checkout Session. And this Session is gonna contain a bunch of data about the object that can be purchased. In our example that's the tour, So the session will contain the tourPrice, the tour name, a product image, and also some other details like client email.  
+Then on the front-end we're gonna create a function to request the Checkout Session from the server once the user clicks the buy button. So once we hit the end point that we created on the backend, that will then create a Session and send it back to the client. Then based on that Session, Stipe will automatically create a checkout page for us where the user can then input all the details like credit card number, expiration date, and all that. Then again using that session, we will finally charge the credit card, And for that, we're gonna need the public key, so the one that we just saw before, So the secret key we will need on the server as we see up there in the first step and the public key is gonna be used on the front-end. And what's really important to note here is that it's really Stripe, which will together with the session, charge the credit card, and so therefore the credit card details never even reach our server, which makes our lives as a developers a lot easier because we don't have to deal with all the security stuff that's related with managing and storing credit cards, So stripe takes all that away from us, we basically just use their API like this.  
 
-* lecture 210
-* Integration Stripe into the Back-End
-So in this video let's integrate Stripe into our backend by creating that API endpoint which will create and send back a Stripe checkout session. And so at this point we're actually gonna start creating our next resource, and so that's the bookings. And we'll start with the bookingRoutes in routes folder. and also create a bookingController. And let's also integrate this right into app.js,
+Anyway once the credit card has successfully been charged, we can then use something called Stripe Webhooks on our back-end, in order to create new bookings. Now this part of the workflow will only work for deployed websites, so websites that are already running on a server. And so this part of our workflow, we're only gonna be able to implement by the end of the next section. But for now, we'll actually find a temporary work-around to this, which is not really secure, but it's gonna work just fine for now. Soo keep this diagram in mind also this concepts that we actually use the session to charge a credit card and we don't really do that directly.  
 
+***See pdf (STRIPE WORKFLOW)***
+
+---
+
+## `Integration_Stripe_into_the_Back-End`
+
+So in this lecture let's integrate Stripe into our backend by creating that API endpoint which will create and send back a Stripe checkout session. And so at this point we're actually gonna start creating our next resource, and so that's the bookings. And we'll start with the bookingRoutes in routes folder. and also create a bookingController. And let's also integrate this right into app.js,
+
+```js
+// Create a bookingController
 const express = require('express');
 const bookingController = require('./../controllers/bookingController');
 const authController = require('./../controllers/authController');
 
 const router = express.Router();
-/*
-And so now let's actually go ahead and create our first route here in bookingRoutes. And the route that we'll create here once again not follow the rest principle because this one is not really gonna be about creating or getting or updating any booking. Instead this route will only be for the client to get a checkout session. And so let's actually call this one /checkout-session, then we need to protect this route, so that only authenticated users can actually get a checkout session. And then add bookingController.getCheckoutSession, Now actually there's one more thing we need to do here in the routes which is to specify a url parameter, and that's going to be /:tourId, So, basically we want the client to send along the id of the tour that is currently being booked. And that is so that we can fill up the checkout session with all the data that is necessary, such as the tour name and the tour price...,
+
+```
+
+And so now let's actually go ahead and create our first route here in bookingRoutes. And the route that we'll create here once again not follow the REST principle because this one is not really gonna be about creating or getting or updating any booking. Instead this route will only be for the client to get a checkout session. And so let's actually call this one /checkout-session, then we need to protect this route, so that only authenticated users can actually get a checkout session. And then add bookingController.getCheckoutSession, Now actually there's one more thing we need to do here in the routes which is to specify a url parameter, and that's going to be /:tourId, So, basically we want the client to send along the id of the tour that is currently being booked. And that is so that we can fill up the checkout session with all the data that is necessary, such as the tour name and the tour price.  
 Let's now create this route handler, We now have to access to the tourId, and so the first thing that we're actually gonna do in this handler function is to find that tour in our database. And for that we need of course the tour Model. so let's require it in bookingController file.
 
-*/
+```js
 router.get(
   '/checkout-session/:tourId',
   authController.protect,
@@ -681,41 +720,55 @@ router.get(
 );
 
 module.exports = router;
+```
 
-/*
-So, let's layout our steps here again.
+***`Let's layout our steps here again`***
 
 1) Get the currently booked tour
 2) Create Checkout Session
 3) Create Session as Response
 
-1- GET CURRENTLY BOOKED TOUR:
-Let's go the first step, that's really easy. just find the id, which is in req.params.tourId.
-const tour = await Tour.findById(req.params.tourId);
+1. `GET CURRENTLY BOOKED TOUR:`
+  Let's go the first step, that's really easy. just find the id, which is in req.params.tourId.
+  const tour = await Tour.findById(req.params.tourId);
 
-2- CREATE CHECKOUT SESSION:
-Next up, let's actually create that session here. And for that we actually install need to install npm package. So,
-! npm i stripe
-And in the meantime we're gonna go to our Stipe dashboard and get our secret key from there. There ones are just for testing, and then once we have our Stripe account active, we can get our live api keys. Now as with any other keys we will put them in our config file.
-Let's now require the Stripe package. And just with all the other packages before please make sure that you are on same version @7.0.0, const stripe = require('stripe'); Now this here will then expose a function basically. And usually what we do then right away is to pass our secret key right into that. just like this: const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); this will then give us a Stripe object, that we can work with.
-And so let's use that. stripe.checkout.session.create(); here in create() we pass the usual object of options. Now there are a lot of options that we can set here, but only three of them are required. So the first one is the payment_method_types, so that's any array where we can specify multiple types and card is for credit card. and right now that's actually all the payment option that we can use for Stripe checkout, but in future they will add a lot more. Then we need to specify the success_url: so that's basically the url that will get called as soon as a credit card has been successfully charged. so as soon as the purchase was successful, the user will be redirected to this url. for now let's simple specify that as our homepage, we're going to do that just as before. Then we also need to specify the cancel_url, for now this one is gonna be similar to success_url, basically it's the page where the user goes if they choose to cancel the current payment. And actually let's make them go to the tour page where they were previously.
-Next up, we can also specify the customer email. And so that's very handy because of course we already have access to the customer's email. And so with this we can save the user one step and make the checkout experience a lot smoother. Remember that this is a protected route, so as always the user is already at the request.
-Next up, we can then also specify a custom field which is called client_reference_Id, that's sounds a bit weird but actually it's going to be really important for us. So this field is gonna allow us to pass in some data about the session that we are currently creating. And that' important because later once the purchase was successful, we'll then get access to the session object again. And by then we want to create a new booking in our database. So remember the diagram, basically i'm talking about the last step in that diagram. And also remember how that's only going to work with deployed website. But still, let's already prepare for that here. So to create a new booking in our database we will need the user's Id, the tourId, and the price. And in this session we already have access to the user's email, and from that we can then recreate the user's id, because the email here is unique. We'll also specify the tour's price here in a second. And so all that' missing here is then the tourId. So that's what we gonna specify her on the custom field, like this: client_reference_id: req.params.tourId,
-Now finally we're gonna specify some details about the product itself, so tour in this case, so that's called line_items, which accepts an array of objects, so one object per item.  in our case that only gonna be one. So, we need to specify the name of the product, so it will be tour.name, and then we can also specify a description, And remember all these fields/properties names here they really come from Stripe, so we cannot make up our own fields. In description we'll put tour.summary,  Then we can also specify an array of images. Now these images here need to be live images. so basically images that are hosted on the internet, because Stripe will actually upload this image to their own server. And so this is another of the things that we can only really do once the website is deployed. But for now as a placeholder we'll basically use the onces from our hosted example website on natours.dev, from there we choose the cover image. and the name of the image we will simple replace tour.imageCover, Next up is the amount, basically the price of the product that is being purchased, so that is tour.price, and now we need multiply that by 100, because this amount is expected be in in cents [1$ = 100cents]. Then we also need to specify the currency. Finally we also specify the quantity. And so that's just one tour in this case. So that's actually it. So the payment_method_types, success_url, cancel_url, customer_email, client_reference_id, all of these are the information about the session itself. and then in line_items, there is information about the product that the user is about to purchase.
-Now let's actually store the session, const session, and we need to await this. Basically this .create() method returns a promise, because setting all these options here will basically do an API call to Stripe and so then of course that's an async function that we should await here.
-This in now our session now go to the last step which is of course to send it.
+2. `CREATE CHECKOUT SESSION:`
+  Next up, let's actually create that session here. And for that we actually install need to install npm package. So,  
+  ***npm i stripe***  
 
-3- CREATE SESSION AS RESPONSE
-let's send back to the client.
-res.status(200).json({
-    status: 'success',
-    session,
-  });
-That's it.
+  And in the meantime we're gonna go to our Stipe dashboard and get our secret key from there. There ones are just for testing, and then once we have our Stripe account active, we can get our live api keys. Now as with any other keys we will put them in our config file.  
+
+  Let's now require the Stripe package. And just with all the other packages before please make sure that you are on same version @7.0.0, const stripe = require('stripe'); Now this here will then expose a function basically. And usually what we do then right away is to pass our secret key right into that. just like this: ***const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);*** this will then give us a Stripe object, that we can work with.  
+
+  And so let's use that. stripe.checkout.session.create(); here in create() we pass the usual object of options. Now there are a lot of options that we can set here, but only three of them are required. So the first one is the `payment_method_types`, so that's any array where we can specify multiple types and card is for credit card. And right now that's actually all the payment option that we can use for Stripe checkout, but in future they will add a lot more. Then we need to specify the `success_url`: so that's basically the url that will get called as soon as a credit card has been successfully charged. so as soon as the purchase was successful, the user will be redirected to this url. For now let's simple specify that as our homepage, we're going to do that just as before. Then we also need to specify the `cancel_url`, for now this one is gonna be similar to success_url, basically it's the page where the user goes if they choose to cancel the current payment. And actually let's make them go to the tour page where they were previously.  
+
+  Next up, we can also specify the customer email. And so that's very handy because of course we already have access to the customer's email. And so with this we can save the user one step and make the checkout experience a lot smoother. Remember that this is a protected route, so as always the user is already at the request.  
+
+  Next up, we can then also specify a custom field which is called client_reference_Id, that's sounds a bit weird but actually it's going to be really important for us. So this field is gonna allow us to pass in some data about the session that we are currently creating. And that's important because later, once the purchase was successful, we'll then get access to the session object again. And by then we want to create a new booking in our database. So remember the diagram, basically I'm talking about the last step in that diagram. And also remember how that's only going to work with deployed website. But still, let's already prepare for that here. So to create a new booking in our database we will need the user's Id, the tourId, and the price. And in this session we already have access to the user's email, and from that we can then recreate the user's id, because the email here is unique. We'll also specify the tour's price here in a second. And so all that' missing here is then the tourId. So that's what we gonna specify here on the custom field, like this: client_reference_id: req.params.tourId.  
+
+  Now finally we're gonna specify some details about the product itself, so tour in this case, so that's called line_items, which accepts an array of objects, so one object per item. In our case that only gonna be one. So, we need to specify the name of the product, so it will be tour.name, and then we can also specify a description, And remember all these fields/properties names here they really come from Stripe, so we cannot make up our own fields. In description we'll put tour.summary, Then we can also specify an array of images. Now these images here need to be live images. so basically images that are hosted on the internet, because Stripe will actually upload this image to their own server. And so this is another of the things that we can only really do once the website is deployed. But for now as a placeholder we'll basically use the onces from our hosted example website on natours.dev, from there we choose the cover image. And the name of the image we will simple replace tour.imageCover, Next up is the amount, basically the price of the product that is being purchased, so that is tour.price, and now we need multiply that by 100, because this amount is expected be in in cents [1$ = 100cents]. Then we also need to specify the currency. Finally we also specify the quantity. And so that's just one tour in this case. So that's actually it.  
+
+  *So the **payment_method_types**, **success_url**, **cancel_url**, **customer_email**, **client_reference_id**, all of these are the information about the session itself. and then in **line_items**, there is information about the product that the user is about to purchase.*  
+
+  Now let's actually store the session, const session, and we need to await this. Basically this .create() method returns a promise, because setting all these options here will basically do an API call to Stripe and so then of course that's an async function that we should await here.  
+  This in now our session now go to the last step which is of course to send it.
+
+3. `CREATE SESSION AS RESPONSE`
+
+  ```js
+  let's send back to the client.
+  res.status(200).json({
+      status: 'success',
+      session,
+    });
+  ```
+
+  That's it.
 
 We could try this out in postman. We got it but with some fixes. I changed the line_items: filed.
 Now it's success so we should kind of see this payment or at least this payment request, in our stripe dashboard.
-*/
+
+```js
 // BOOKING CONTROLLER FILE
 
 exports.getCheckoutSession = catchAsync(async (req, res, next) => {
@@ -739,7 +792,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
     //     quantity: 1,
     //   },
     // ],
-    // ! In current version of Stripe above code is not working, which is written by Jonas sir.
+    // In current version of Stripe above code is not working, which is written by Jonas sir.
     line_items: [
       {
         price_data: {
@@ -764,76 +817,113 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
   });
 });
 
-/*
+```
 
-* lecture 211
-* Processing Payments on the Front-End
-In this lecture we gonna learn how to process payments with stripe on the front-end whenever a user clicks a button.
-And to start let's actually configure it that button so that it only appears whenever a user is actually logged in. in each tours we have a button 'Book Tour Now!', If the user's is actully not logged in then this button should redirect the user to the login page. So let's implement that in the tour template.
-So if there is a user logged in then that meas that we have access to the user variable. so we can do:
+---
+
+## `Processing_Payments_on_the_Front-End`
+
+In this lecture we gonna learn how to process payments with stripe on the front-end whenever a user clicks a button.  
+And to start let's actually configure it that button so that it only appears whenever a user is actually logged in. In each tours we have a button 'Book Tour Now!', If the user's is actually not logged in then this button should redirect the user to the login page. So let's implement that in the tour template.  
+So if there is a user logged in then that means that we have access to the user variable. So we can do:
+
+```pug
 if user
   button.btn.btn--green.span-all-rows 'Book tour now!'
 else // there's no user
   a.btn.btn--green.span-all-rows(href='/login') Log in to book tour
-Now somethig here very important in 'Book tour now!' btn, thst si we should put the current tourId right here in this button element. Now why is that so important? well remember how the api endpoint that we just created('/checkout-session/:tourId') needs the tourId, and so that tourId needs to come from somewhre basically, and so right now we don't have that information anywhere on this page, and so we'll put it here right on this element, so then our javascript file can grab it from here and send it along with the request to the checkout session route. So just like we did with the map we're going to use a data attribute. data- and then whatever variable name that we want to define,  that's tourId in this case. so (data-tour-id=`${tour.id}`)
+```
+
+Now something here very important in 'Book tour now!' btn, that is we should put the current tourId right here in this button element. **Now why is that so important?** well remember how the API endpoint that we just created('/checkout-session/:tourId') needs the tourId, and so that tourId needs to come from somewhere basically, and so right now we don't have that information anywhere on this page, and so we'll put it here right on this element, so then our javascript file can grab it from here and send it along with the request to the checkout session route. So just like we did with the map we're going to use a data attribute. data- and then whatever variable name that we want to define,  that's tourId in this case. so ***(data-tour-id=`${tour.id}`)***
+
+```pug
 if user
   button.btn.btn--green.span-all-rows#book-tour(data-tour-id=`${tour.id}`) Book tour now!
 else
   a.btn.btn--green.span-all-rows(href='/login') Log in to book tour
-Now next up let's up let's create a script in which we will do the request, and process the payment on the front end. just like before that will be in bublic/js called it stripe.js
-/*
-/*
-And now here we actually need access to stripe library agin. but that package that we just installed before, so stripe npm package, that we used here in bookingController, So this only works for the back end. And what we need to do on the front end is to actually include a script in the html, and since we only need that script on tour page, so we'll do it just like we did with the mapbox script. so we will put it in the head block. let's copy this script from stripe's documentation     <script src="https://js.stripe.com/v3/"></script>
-So this script then will expose a stripe object to the global scope. So now in stripe.js we can use that. We say:
-const stripe = Stripe(), here Stripe is an object that we get from the script that we just included. And then here we need to public key.
+```
+
+Now next up let's up let's create a script in which we will do the request, and process the payment on the front end. just like before that will be in public/js called it stripe.js
+
+And now here we actually need access to Stripe library agin. But that package that we just installed before, so stripe npm package, that we used here in bookingController, So this only works for the back end. And what we need to do on the front end is to actually include a script in the html, and since we only need that script on tour page, so we'll do it just like we did with the mapbox script. so we will put it in the head block. let's copy this script from stripe's documentation
+
+```html
+<script src="https://js.stripe.com/v3/"></script>
+```
+
+So this script then will expose a stripe object to the global scope. So now in stripe.js we can use that. We say:  
+
+```js
+const stripe = Stripe(), 
+```
+
+here Stripe is an object that we get from the script that we just included. And then here we need to public key.
+
+```js
 const stripe = Stripe(
   'pk_test_51OIXZQSG0Tco2w5skNQHdmPgV1tOeQO26QUDjuaAiFyvfjukSmdTr1jEWURIISmVOAjC20JIxccP6QRj1YnMHcKP001k7DR7eO'
 );
+```
 
-And now let's finally create a function, that we gonna call bookTour, And so this function will take in a tourId, And this tourId is the one thats gonna be coming right from the user interface, that we put on button element using data attribute. Just at before we gonna get that one from index.js file, where we will then also call this bookTour function.
+And now let's finally create a function, that we gonna call bookTour, And so this function will take in a tourId, And this tourId is the one thats gonna be coming right from the user interface, that we put on button element using data attribute. Just at before we gonna get that one from index.js file, where we will then also call this bookTour function.  
+
 Anyway, Once more specify the steps that we gonna take here.
 
 1) Get Checkout Session from API
 2) Create Checkout form + charge credit card
 
-1- GET CHECKOUT SESSION FROM API: The first step is to actually get the session from the server, and so that's where now this route here(/checkout-session/:tourId) come in. So this is the point where we are going to use this endpoint to really get our checkout session on to the client side.
-So let's store the session into session variable, and then we're going to await an http request, which once more we will do with axios.  And then into axios we can simply just pass the url, when all we want to do a simple get request. So up until this point we have always specified the method, and the url and the data, but we're only doing a get request, and so that's then much simpler.   console.log(session); Just to see our session object, Now in our index.js we'll basically connect that green button with this function that we just created of stripe.js file.
-import { bookTour } from './stripe';
-Then as always let's select our element from the web page. const bookBtn = document.getElementById('book-tour');
-And so new we can add that event handler to it.
-/*
-Now we need to get that tour Id from that button, so that's on the e.target, here e.target is basically the element which is clicked, so the one that triggered this event listener here, in that element we have tourId in data attribute. just like this dataset.tourId, but in our pug file we specify like this data.tour-id, So, whenever there is a - (dash) it will automatically get converted to this CamelCase notation. when property and our variable is same then we simply can destructure it like this: const {tourId} = e.target.dataset;
-And we call bookTour function with this tourId, Also we change the text of the button with something like 'processing',
-YES WITH console.log(session), we get a response object, as asios send response in an object, and indeed in that object we have session object. we have customer email, etc.
-Now as a last step actually create the checkout form, and charge the credit card.
+1. `GET CHECKOUT SESSION FROM API`  
+    The first step is to actually get the session from the server, and so that's where now this route here(/checkout-session/:tourId) come in. So this is the point where we are going to use this endpoint to really get our checkout session on to the client side.
 
-* index.js file
-if (bookBtn) {
-  bookBtn.addEventListener('click', (e) => {
-    e.target.textContent = 'Processing';
-    // const tourId = e.target.dataset.tourId;
-    const { tourId } = e.target.dataset;
-    bookTour(tourId);
-  });
-}
-*/
-/*
-2- CREATE CHECKOUT FORM + CHARGE CREDIT CARD: As a second step we will use stripe object to basically automatically create the checkout form plus change credit card for us.
-it's very simple all we need to do is to await stripe.redirectToCheckout({}) and then in their we put options, but only one option. which is the sessionId, and that will come from the session object, that is in the session variable here, and remember we saw in console our session is in the data object created by axios,
+    So let's store the session into session variable, and then we're going to await an http request, which once more we will do with axios.  And then into axios we can simply just pass the url, where all we want to do a simple get request. So up until this point we have always specified the method, and the url and the data, but we're only doing a get request, and so that's then much simpler.   console.log(session); Just to see our session object, Now in our index.js we'll basically connect that green button with this function that we just created of stripe.js file.  
+    ***import { bookTour } from './stripe';***
+
+    Then as always let's select our element from the web page. ***const bookBtn = document.getElementById('book-tour');***
+
+    And so new we can add that event handler to it.
+
+    Now we need to get that tourId from that button, so that's on the e.target, here e.target is basically the element which is clicked, so the one that triggered this event listener here, in that element we have tourId in data attribute. **just like this dataset.tourId, but in our pug file we specify like this data.tour-id, So, whenever there is a - (dash) it will automatically get converted to this CamelCase notation.** when property and our variable is same then we simply can destructure it like this:  
+
+    ```js
+    const {tourId} = e.target.dataset;
+    ```
+
+    And we call bookTour function with this tourId, Also we change the text of the button with something like 'processing'.  
+    YES WITH console.log(session), we get a response object, as axios send response in an object, and indeed in that object we have session object. we have customer email, etc.  
+    Now as a last step actually create the checkout form, and charge the credit card.
+
+    ```js
+    // index.js file
+    if (bookBtn) {
+      bookBtn.addEventListener('click', (e) => {
+        e.target.textContent = 'Processing';
+        // const tourId = e.target.dataset.tourId;
+        const { tourId } = e.target.dataset;
+        bookTour(tourId);
+      });
+    }
+    ```
+
+2. `CREATE CHECKOUT FORM + CHARGE CREDIT CARD`  
+As a second step we will use Stripe object to basically automatically create the checkout form plus change credit card for us.  
+it's very simple all we need to do is to await stripe.redirectToCheckout({}) and then in their we put options, but only one option. which is the sessionId, and that will come from the session object, that is in the session variable here, and remember we saw in console our session is in the data object created by axios.  
+
+```javascript
 await stripe.redirectToCheckout({
       sessionId: session.data.session.id,
     });
+```
 
-And now comes the greatest part of all which is to actually check out if this works.
-! I think there is a problem, It may due to Content Security Policy Issue, OR, According to Stripe documentation the stripe.redirectToCheckout() method is now depreciated.
+And now comes the greatest part of all which is to actually check out if this works.  
+I think there is a problem, It may due to Content Security Policy Issue, OR, According to Stripe documentation the stripe.redirectToCheckout() method is now depreciated.
 
-Yes, After disabling the content security policy by using chrome extension built by google, on the site, now it's working....
-For here we can get the card numbers: <https://stripe.com/docs/testing#cards>
-We can use just: 4242424242424242
-Also we get the detail on stripe test dashboard, on payments tab.
+Yes, After disabling the content security policy by using chrome extension built by google, on the site, now it's working.  
 
-*/
+For here we can get the card numbers: <https://stripe.com/docs/testing#cards>  
+We can use just: **4242424242424242**
+Also we get the detail on stripe test dashboard, on payments tab.  
 
+```javascript
 import axios from 'axios';
 import { showAlert } from './alerts';
 
@@ -859,18 +949,18 @@ export const bookTour = async (tourId) => {
     showAlert('error', err);
   }
 };
+```
 
-/*
+### `QUICK-RECAP`
 
-* QUICK RECAP:
-We started by creating the checkout sesssion, which needs as an input the tour Id, so that we can then store a bunch of details about the tour in that session, like tourName, summery, images  ect. So all that stuff that we want to show up on the checkout page and also in our dashboard. Then we also include the email so that the user doesn't need to fill it out the checkout, we included by using customer_email filed. And also we added the client_reference_id, and remember this client_reference_id, which will make a lot more sense once we actually get to use it. So we create this session with all these stuff whenever someone hits this '/checkout-session/:tourId' route. And so that's exactly what we then do on our front end rihgt in the stripe.js. So we get our session here in stripe.js file and then from here we create a checkout and charge the credit card using stripe.redirectToChecout(), and this stripe object here is simply using the stripe library with our public key. And remeber the tour id is stored right on the button where the use click to book a tour, That id is then read right here in index.js, wherever someone hits the booking button. and from there we call the bookTour function with the tourId. remember bookTour is the function that is in stripe.js file, which takes care of really processing the paymensts on the front-end. And so the result of all this  what we just saw at the end, where the user really get charged the credit card and purchased the tour.  PERFECT
-Now what's missing here is actually whenever there is a new booking, we want to create a new booking document in out database. So we're gonna create the bookings model right in the next video.
-*/
+We started by creating the checkout session, which needs as an input the tourId, so that we can then store a bunch of details about the tour in that session, like tourName, summery, images  ect. So all that stuff that we want to show up on the checkout page and also in our dashboard. Then we also include the email so that the user doesn't need to fill it out the checkout, we included by using customer_email filed. And also we added the client_reference_id, and remember this client_reference_id, which will make a lot more sense once we actually get to use it. So we create this session with all these stuff whenever someone hits this '/checkout-session/:tourId' route. And so that's exactly what we then do on our front end right in the stripe.js. So we get our session here in stripe.js file and then from here we create a checkout and charge the credit card using stripe.redirectToCheckout(), and this stripe object here is simply using the Stripe library with our public key. And remember the tourId is stored right on the button where the use click to book a tour, That id is then read right here in index.js, wherever someone hits the booking button. And from there we call the bookTour function with the tourId. Remember bookTour is the function that is in stripe.js file, which takes care of really processing the payments on the front-end. And so the result of all this  what we just saw at the end, where the user really get charged the credit card and purchased the tour.  PERFECT  
 
-/*
+Now what's missing here is actually whenever there is a new booking, we want to create a new booking document in out database. So we're gonna create the bookings model right in the next lecture.
 
-* lecture 212
-* Modelling the Bookings
+---
+
+## `Modelling_the_Bookings`
+
 Let's now, really quickly, create the model for our bookigs so that then, in the next video we can actually start creating some real bookings. create a bookingModel.js file.
 /*
 this bookingModel is of course gonna be very similar to what we already did before.
