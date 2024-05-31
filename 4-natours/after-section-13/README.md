@@ -19,6 +19,10 @@ In this one we will make our website in API even better by implementing advanced
 13. [Integration_Stripe_into_the_Back-End](#integration_stripe_into_the_back-end)
 14. [Processing_Payments_on_the_Front-End](#processing_payments_on_the_front-end)
 15. [Modelling_the_Bookings](#modelling_the_bookings)
+16. [Creating_New_Bookings_on_Checkout_Success](#creating_new_bookings_on_checkout_success)
+17. [Rendering_a_User_Booked_Tours](#rendering_a_user_booked_tours)
+18. [Finishing_the_Bookings_API](#finishing_the_bookings_api)
+19. [Final_Considerations](#final_considerations)
 
 ## `Image_Uploading_using_Multer`
 
@@ -961,14 +965,15 @@ Now what's missing here is actually whenever there is a new booking, we want to 
 
 ## `Modelling_the_Bookings`
 
-Let's now, really quickly, create the model for our bookigs so that then, in the next video we can actually start creating some real bookings. create a bookingModel.js file.
-/*
-this bookingModel is of course gonna be very similar to what we already did before.
+Let's now, really quickly, create the model for our bookings so that then, in the next lecture we can actually start creating some real bookings. create a bookingModel.js file.
+
+This bookingModel is of course gonna be very similar to what we already did before.  
 Now remember how we said before that we were going to use parent referencing on the bookings, so basically keeping a referencing of to the tour and also to the user, who booked that tour. So remember we set the type to mongoose.Schema.ObjectId, and then the ref, set to 'Tour' basically point to Tour model.
-.......
-Finally we also want to create a paid property, And this one will be automatically set to true, but this is just in case that, for example an administrator wants to create a booking outside of Stripe. For example if a customer doesn't have a credit card and want to pay directly with cash. And in this case an administrator might then use our bookings API in order to basically manually create a tour, and so that might then be paid or not yet paid.
-Now what we also want to do here is to populate the tour and the user automatically whenever there is a query. So remember how we used to do that using query middleware, right on the Schema using .pre, We will populate for both the user and tour, and in this case that's absolutely no problem for performance, because there won't be many calls to the bookings, because only guides and admins will actually be allowed to do them. So basically for a guide to check how has actually booked their tours. So that's one of the use cases that I see for this part of the api.
-*/
+
+Finally we also want to create a paid property, And this one will be automatically set to true, but this is just in case that, for example an administrator wants to create a booking outside of Stripe. For example if a customer doesn't have a credit card and want to pay directly with cash. And in this case an administrator might then use our bookings API in order to basically manually create a tour, and so that might then be paid or not yet paid.  
+Now what we also want to do here is to populate the tour and the user automatically whenever there is a query. So remember how we used to do that using query middleware, right on the Schema using .pre, We will populate for both the user and tour, and in this case that's absolutely no problem for performance, because there won't be many calls to the bookings, because only guides and admins will actually be allowed to do them. So basically for a guide to check how has actually booked their tours. So that's one of the use cases that I see for this part of the API.
+
+```javascript
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
@@ -1010,42 +1015,57 @@ bookingSchema.pre(/^find/, function (next) {
 const Booking = mongoose.model('Booking', bookingSchema);
 
 module.exports = Booking;
-/*
+```
 
-* lecture 213
-* Creating New Bookins on Checkout Success
-let's now create a new booking document in our database whenever a user successfully purchases a tour. So we're back here in the booking controller and in the in the routeHandler which creates the checkout sessions. bookingController
-Remember here we have the success url, and this url is the basis of the functionality that we're going to implement in this lecture. So whenever a checkouk is successful the browser will automatically go to this success url, it's right now simply a homepage. So when a checkout is successful we want to create a booking, So basically we want to create a new booking whenever this url is accessed. Now we could create a new route for this success, but then we would have to create a whole new page and that's not really worth it in this case. that's because what we're going to do in this lecture is only a temporary solution anyway because it's not really secure. Remember How we said some lec ago in that diagram that later when a website is actually deployed on a server we will get access to the session object once the purchase is completed using Stripe Webhooks. And so these webhooks will then be perfect for us to create a new booking. But for now, since we can't do that yet, let's use a work around, which is simply to put the data that we need to create a new booking right into this success url as a query string.
-And we need to create a query string becasue Stripe will just make a get reqeust to this url, and so we cannot really send a body or any data with it except for the query string.
+---
+
+## `Creating_New_Bookings_on_Checkout_Success`
+
+Let's now create a new booking document in our database whenever a user successfully purchases a tour. So we're back here in the booking controller and in the in the routeHandler which creates the checkout sessions.  
+Remember here we have the success url, and this url is the basis of the functionality that we're going to implement in this lecture. So whenever a checkout is successful the browser will automatically go to this success url, it's right now simply a homepage. So when a checkout is successful we want to create a booking, So basically we want to create a new booking whenever this url is accessed. Now we could create a new route for this success, but then we would have to create a whole new page and that's not really worth it in this case. That's because what we're going to do in this lecture is only a temporary solution anyway because it's not really secure. Remember How we said some lecture ago in that diagram that later when a website is actually deployed on a server we will get access to the session object once the purchase is completed using Stripe Webhooks. And so these webhooks will then be perfect for us to create a new booking. But for now, since we can't do that yet, let's use a work around, which is simply to put the data that we need to create a new booking right into this success url as a query string.  
+And we need to create a query string because Stripe will just make a GET request to this url, and so we cannot really send a body or any data with it except for the query string.  
 So let's do that and what we need here is basically the three required fields in our booking model, so tour, user and price. So,
-success_url: `${req.protocol}://${req.get('host')}/?tour=${
-      req.params.tourId
-    }&user=${req.user.id}&price=${tour.price}`,
-Now as I said before, this is not secure at all, because right now anyone who knows this url structure here could simply call it without going through the checkout process. So anyone really could just book a tour without having to pay.  But for now as a work around it works just fine because many peoply will of course will know that this is our seccess url. because actually we're going to hide that fact a little bit in a second.
+
+```javascript
+success_url: `${req.protocol}://${req.get('host')}/?tour=${req.params.tourId}&user=${req.user.id}&price=${tour.price}`,
+```
+
+Now as I said before, this is not secure at all, because right now anyone who knows this url structure here could simply call it without going through the checkout process. So anyone really could just book a tour without having to pay. But for now as a work around it works just fine because many people will of course will know that this is our success url. Because actually we're going to hide that fact a little bit in a second.  
 Let's now create the function that will actually create the new booking in the database here in bookingController.js file.
-/*
-It calls createBookingCheckout, because later on we'll also have createBooking which will then be accessible from ou bookings api.
-Let's start by getting our data from the query string. And so for that we're gonna use destructuring, tour user and price will be available on the req.query, remember that's the query string.
+
+It calls createBookingCheckout, because later on we'll also have createBooking which will then be accessible from our bookings API.  
+Let's start by getting our data from the query string. And so for that we're gonna use destructuring, tour user and price will be available on the req.query, remember that's the query string.  
 Then we actually only want to create a new booking if all of these here are specified. Basically we say if they don't exist then we return and go to the next middleware.
-? Now here what exactly is the next middleware actually?
-well remember that we want to create a new booking on this home url, because again that is the url that is called whenever a purchase is successful with Stripe. And so what we need to do is to add this middleware function that we're creating right now onto the middleware stack of this route handler. So what route handler is that? that's in viewRoutes and from there first one with home('/'), So here we have to add that middleware function that we currently creating.
+
+**Now here what exactly is the next middleware actually?**  
+Well remember that we want to create a new booking on this Home url, because again that is the url that is called whenever a purchase is successful with Stripe. And so what we need to do is to add this middleware function that we're creating right now onto the middleware stack of this route handler. So what route handler is that? that's in viewRoutes and from there first one with home('/'), So here we have to add that middleware function that we currently creating.
+
+```js
 router.get(
   '/',
   bookingController.createBookingCheckout,
   authController.isLoggedIn,
   viewsController.getOverview
 );
-And again, this is here just kind of temporary until we actually have our website deployed to a server where we will then be able to create a better solution for this.
-Here in the bookingController it's now time to actually create that new booking. So, we now need to import that bookingModel here.
-So, we have to await the Booking.create({tour, user,price}), And we're not saving this into any variable because we don't really need it. We're not gonna be sending this back as an API response. At this point all we want to do here is to just create that new document.
-Next up we could say next(), so that then go to the next middleware, but that's not really ideal. So, keep in mind that the next middleware in the stack at the home'/' route is authController.isLoggedIn, and then viewController.gerOverview, so basically the function that is going to render our home page. But remember that this url is all of the data that we passed in query string, with username, price etc, So again that's not secure at all. And so at least let's make it a little bit more secure, So what we can do here is basically redirect the application now to only this home url, so basically removing the query string from the original url.
-So actually we're now going to use something that we never used before. So we're going to use res.redirect(), now here what we want is the entire url, but without the query string. So, req.originalUrl, that's the entire url from which the request came, so from there we need to split it by the question mark. So if we split it with ? then we will have any array of two elements, So here we take the first element. And what redirect here does is basically to create a new request but to this new url that we passed there. So in this case it will create a new request to our root middleware, So this request again gonna hit home/root route, and so once more it will hit this middleware that we're now creating(createBookingCheckout), so second time it going to be hitting that, but now the tour, user, and price are no longer defined so then we will go to the next middleware, which finally is the getOverview handler, which then we'll just render the homepage, but without the query sting in the url.
-NOW IT'S TIME TO TEST THIS OUT, Indeed our very fist document is created. Tha awesome and so now we really a way of creating bookings whenever a booking happens with Stripe.
+```
+
+And again, this is here just kind of temporary until we actually have our website deployed to a server where we will then be able to create a better solution for this.  
+Here in the bookingController it's now time to actually create that new booking. So, we now need to import that bookingModel here.  
+So, we have to await the Booking.create({tour, user,price}), And we're not saving this into any variable because we don't really need it. We're not gonna be sending this back as an API response. At this point all we want to do here is to just create that new document.  
+
+Next up we could say next(), so that then go to the next middleware, but that's not really ideal. So, keep in mind that the next middleware in the stack at the home'/' route is authController.isLoggedIn, and then viewController.gerOverview, so basically the function that is going to render our home page. But remember that this url is all of the data that we passed in query string, with username, price etc, So again that's not secure at all. And so at least let's make it a little bit more secure, So what we can do here is basically redirect the application now to only this home url, so basically removing the query string from the original url.  
+
+So actually we're now going to use something that we never used before. ***So we're going to use res.redirect()***, now here what we want is the entire url, but without the query string. So, req.originalUrl, that's the entire url from which the request came, so from there we need to split it by the question mark. So if we split it with ? then we will have any array of two elements, So here we take the first element. And what redirect here does is basically to create a new request but to this new url that we passed there. So in this case it will create a new request to our root middleware, So this request again gonna hit home/root route, and so once more it will hit this middleware that we're now creating(createBookingCheckout), so second time it going to be hitting that, but now the tour, user, and price are no longer defined so then we will go to the next middleware, which finally is the getOverview handler, which then we'll just render the homepage, but without the query sting in the url.  
+
+NOW IT'S TIME TO TEST THIS OUT, Indeed our very fist document is created. Awesome and so now we really a way of creating bookings whenever a booking happens with Stripe.  
 Now again, once a website is deployed, we will then actually use Stripe Webhooks in order to create bookings in a more secure and much better way.
-* QUICK RECAP:
-Basically we added all the variable that we need to create a new booking to the success url. then we added a new middleware function here to the stack of that exact root route, and so like this whenever this url here is hit we'll attempt to create a new booking. But that new booking is of course only created when the tour, user and price are specified in the query. And so in this middleware function, if they are specified on the query then we create a new booking, then after that is done we remove the query sting from the url in order to make the whole process a bit less transparent for the user. Basically so that whole query string doesn't show up in our browser's url bar. And then down we redirect our application to this new root url here. So this way our newly created middleware here will be skipped and then our normal homepage will simply get rendered.
+
+### `QUICK-RECAP:`
+
+Basically we added all the variable that we need to create a new booking to the success url. then we added a new middleware function here to the stack of that exact root route, and so like this whenever this url here is hit we'll attempt to create a new booking. But that new booking is of course only created when the tour, user and price are specified in the query. And so in this middleware function, if they are specified on the query then we create a new booking, then after that is done we remove the query sting from the url in order to make the whole process a bit less transparent for the user. Basically so that whole query string doesn't show up in our browser's url bar. And then down we redirect our application to this new root url here. So this way our newly created middleware here will be skipped and then our normal homepage will simply get rendered.  
 In the next lecture we'll actually take care of implementing one last piece of our website, which basically for My Bookings page. This page will do is to basically display  one tour card for each of the tours that we booked.
-*/
+
+```javascript
 exports.createBookingCheckout = catchAsync(async (req, res, next) => {
   // This is only TEMPORARY, because it's UNSECURE: everyone can make bookings without paying.
   const { tour, user, price } = req.query;
@@ -1057,48 +1077,71 @@ exports.createBookingCheckout = catchAsync(async (req, res, next) => {
   res.redirect(req.originalUrl.split['?'](0));
 });
 
-/*
+```
 
-* lecture 214
-* Rendering a User's Booked Tours
-We're gonna implement my bookins page. So basically we're gonna render a nice page conataining all the tours that a user has booked
-Let's start by adding a new route to our viewRoutes. which is /my-tours route, which again will be protected. Then in a viewsController we're gonna have a controller called getMyTurs
+---
+
+## `Rendering_a_User_Booked_Tours`
+
+We're gonna implement my booking page. So basically we're gonna render a nice page containing all the tours that a user has booked.  
+Let's start by adding a new route to our viewRoutes. which is /my-tours route, which again will be protected. Then in a viewsController we're gonna have a controller called getMyTours.
+
+```js
+// route
 router.get('/my-tours', authController.protect, viewsController.getMyTours);
-let's go ahaed and create this controller.
-/*
+
+// controller
 exports.getMyTours = (req, res, next) => {};
-And so now, what we need to do here is to find all the tours that the user has booked. So, basically, first we need to find all the bookings for the currently logged-in users, which will then give us a bunch of tour Id, and then we have to find the tours with those ids.
+```
+
+And so now, what we need to do here is to find all the tours that the user has booked. So, basically, first we need to find all the bookings for the currently logged-in users, which will then give us a bunch of tour Id, and then we have to find the tours with those ids.  
 
 1) Find all bookings
 2) Find tours with the returned IDs
+
 Now instead we could also do virtual populate on the tours, and it would be great if you would implement with on you own exactly as we have done it before with the tours and the reviews.
-But here in this function I actually wanted to show you  how we can do it manually because I think that's also kind of important and actually a virtual populate should work something similar to what we're gonna do here. And so actually we need two queries in order to really find the tours corresponding to the user's bookings.
+
+But here in this function I actually wanted to show you how we can do it manually because I think that's also kind of important and actually a virtual populate should work something similar to what we're gonna do here. And so actually we need two queries in order to really find the tours corresponding to the user's bookings.  
+
 Anyway lets now start!
-1) Find all bookings
-So let's create a variable for all the bookings await Booking.find({ tour: req.user.id }), Now remember that each booking document has a userId, So what we do now is to basically query by the userId, so that will then return us all the tours belong to the current user. So this booking now contains all the booking document for the current user, by really that only gives us the tourIds. Now we want to find the tours with the returned Ids.
-So the next step is to basically create an array of all the ids, and then after that query for tours that have one of these ids. so step 2
 
-2) Find tours with the returned IDs
-const tourIDs = bookings.map((el) => {
-    el.tour;
-  }); This loops through the entire bookings array and on each element it will grab the el.tour, because in tour we stored the id of corresponding tourId. Then in the end we have a nice array with all the tour IDs there.
-? from chatGPT
-If you were to query the database and retrieve multiple documents using find or a similar method, the result would be an array of objects, where each object represents a separate document.
+1) `Find all bookings`
 
-Then having all the tourIds, we can actually get the tours corresponding to those IDs.
-Here we cannot use findById, because here we actually need a new operator, which is operator is called '$in', Tour.find({_id:{$in: tourIDs}}), So basically what this is going to do is that it will select all the tours which have an ID which is in the tourIDs array. Very handy $in operator. And so that's actually one of the reasons why i wanted to do it manually instead of just doing a virtual populate like we did before.
-And with this our tours ready to be rendered. so res.status(200).render({}), and actually we don't even need a new template for this. We're simply gonna be reusing the overview, with only the tours which users has booked.
+    So let's create a variable for all the bookings await Booking.find({ tour: req.user.id }), Now remember that each booking document has a userId, So what we do now is to basically query by the userId, so that will then return us all the tours belong to the current user. So this booking now contains all the booking document for the current user, by really that only gives us the tourIds. Now we want to find the tours with the returned Ids.  
+    So the next step is to basically create an array of all the ids, and then after that query for tours that have one of these ids. so step 2
+
+2) `Find tours with the returned IDs`
+
+    ```js
+    const tourIDs = bookings.map((el) => {
+      el.tour;
+    }); 
+    ```
+
+    This loops through the entire bookings array and on each element it will grab the el.tour, because in tour we stored the id of corresponding tourId. Then in the end we have a nice array with all the tour IDs there.
+
+    *`From chatGPT`*  
+    *If you were to query the database and retrieve multiple documents using find or a similar method, the result would be an array of objects, where each object represents a separate document.*
+
+Then having all the tourIds, we can actually get the tours corresponding to those IDs.  
+Here we cannot use findById, because here we actually need a new operator, which is operator is called '$in', ***Tour.find({_id:{$in: tourIDs}})***, So basically what this is going to do is that it will select all the tours which have an ID which is in the tourIDs array. Very handy `$in Operator`. And so that's actually one of the reasons why i wanted to do it manually instead of just doing a virtual populate like we did before.  
+And with this our tours ready to be rendered. so res.status(200).render({}), and actually we don't even need a new template for this. We're simply gonna be reusing the overview, with only the tours which users has booked.  
 Ok that should be it, Now of course we could also have created whole new card for these booked tours with some more relevant information about each of the bookings.  
-Let set this link right on the user account page.
-So, we're actually ready to test this.
+Let set this link right on the user account page.  
+So, we're actually ready to test this.  
 Nothing happening here. This was a really hard one to find the bug here.
-Small error here:
+Small error here:  
 const bookings = await Booking.find({ tour: req.user.id }); first here we need user instead of tour, b/c we need to filter tours by the user, where the user is equal to the user coming from the request, SO,
-const bookings = await Booking.find({ tour: req.user.id });
+
+```js
+const bookings = await Booking.find({ user: req.user.id });
+```
+
 But that's not the main bug actually. So this is not the one preventing the page from actually loading. The error that causes that to happen is right here in the booking model. It's in pre find middleware, where the problem is that we do never call the next middleware there. So this is a pre-middleware, and all of the pre-middlewares have access to the next function and so at the end of this middleware, we always have to call next. Otherwise our process really get stuck.  
 
 NOW CHECK IT: GREAT! HERE WE GO.
-*/
+
+```javascript
 exports.getMyTours = catchAsync(async (req, res, next) => {
   // 1) Find all bookings
   const bookings = await Booking.find({ user: req.user.id });
@@ -1115,132 +1158,60 @@ exports.getMyTours = catchAsync(async (req, res, next) => {
   });
 });
 
-/*
+```
 
-* lecture 215
-* Finishing the Bookings API
-And now to finish this section, let's now very quickly finish the bookings API.
+---
+
+## `Finishing_the_Bookings_API`
+
+And now to finish this section, let's now very quickly finish the bookings API.  
 So adding all the CRUD operations to the bookings, so Creating, Reading, Updating, and Deleting bookings.
-Go to the bookingsController file
+Go to the bookingsController file  
 
 So, let start here by using the factory, that we already have in order to create all these five handlers.
+
+```js
 exports.createBooking = factory.createOne(Booking);
 exports.getBooking = factory.getOne(Booking);
 exports.getAllBookings = factory.getAll(Booking);
 exports.updateBooking = factory.updateOne(Booking);
 exports.deleteBooking = factory.deleteOne(Booking);
+```
 
-Now moving to the routes, in bookingRoutes
+Now moving to the routes, in bookingRoutes.  
 So without the booking id, we have as always getting all and creating a new one. And all of these routes will actually be protected and also only restricted to administrators and lead guides. so let's put that two above the handlers.
 Now the routes with the id, which will be getOne, update and delete
 
 just to test getAllBooking and getBooking to postman.
-*/
 
-/*
+---
 
-* Lecture 216
-* Final Considerations
-Last video of this section, And is this section we kind of finished our project, both the API and also the rendered website.  
-"In this last video I wanted to quickly address some topics that we could've added to theh API and to the website, and basically leave them for you as challeges if you would like"
+## `Final_Considerations`
 
-* We could have add some more business logic to our project, for exampe. adding a restriction that users can only review a tour that they have actually booked.
+Last lecture of this section, And is this section we kind of finished our project, both the API and also the rendered website.  
 
-* You could also implement some nested booking routes, for example getting all the bookings for a certain tour, or getting all the bookings for a certain user.  
-* You could dramatically improve the tour dates, and what i mean by that is that you could add a participants and a soldOut field to each of the dates. And the date then becomes kind of like an instace of the tour. then when a user actually books a tour, they need to select one of the available dates and then new booking in one of the dates will then increase the number of participants in the date until it is booked out. so basically when participants is greater than the maximum group size. Now finally when the user wants to book a certain tour on a certain date you need to check if the tour is still available on that selected date.
-! SEE PDF FILE
-* Finally, you could also implement some of the advanced authentication features that we alredy talk about bit before in the security section. For example you could confirm a user email address basiclly by sending them an email with a link that they need to click, and only after the click, the user is then really registered in the application. and can do stuff like puchasing tours.
-* We could keep users logged in with something called refresh tokens. that's bit complicated to implement but if you google around about how it works then will find a good solution.
-* we could also implement two-factor authenticatio, but this one is taking it even one step further. so when a user log in they receive something like a text message..
+***"In this last video I wanted to quickly address some topics that we could've added to the API and to the website, and basically leave them for you as challenge if you would like"***
+
+We could have add some more business logic to our project, for example. Adding a restriction that users can only review a tour that they have actually booked.
+
+You could also implement some nested booking routes, for example getting all the bookings for a certain tour, or getting all the bookings for a certain user.
+
+You could dramatically improve the tour dates, and what i mean by that is that you could add a participants and a soldOut field to each of the dates. And the date then becomes kind of like an instance of the tour. then when a user actually books a tour, they need to select one of the available dates and then new booking in one of the dates will then increase the number of participants in the date until it is booked out. so basically when participants is greater than the maximum group size. Now finally when the user wants to book a certain tour on a certain date you need to check if the tour is still available on that selected date.  
+
+SEE PDF FILE
+
+Finally, you could also implement some of the advanced authentication features that we already talk about bit before in the security section. For example you could confirm a user email address basically by sending them an email with a link that they need to click, and only after the click, the user is then really registered in the application. And can do stuff like purchasing tours.  
+We could keep users logged in with something called refresh tokens. That's bit complicated to implement but if you google around about how it works then will find a good solution.  
+We could also implement two-factor authentication, but this one is taking it even one step further. so when a user log in they receive something like a text message..  
 This are the things that we could do on the API side.
 
 But also there is stuff that you can do on the website.
 
-* implement signup form, similar to login.
-* On the tour detail page, if a user has taken a tour, allow them add a review directly on the website, implemnt a fomr for this. So first we have to check if the currently logged-in user has actually booked the current tour, and also if the time of the tour has already passed.
-* Hide the entire booking section on the tour detail if the current user, had already booked the tour. Also prevent duplicate bookings on the model.
-* Implement 'like tour' functionality with favourite tour page
-* Implement My Reviews page, which already has a link right now, and on that page the user could then see and maybe also edit and delete all of their own reviews.
-* For administrators, implement all the 'Manage' pages, where they can perform all the CRUD operations on all the resources.
+Implement signup form, similar to login.  
+On the tour detail page, if a user has taken a tour, allow them add a review directly on the website, implement a form for this. So first we have to check if the currently logged-in user has actually booked the current tour, and also if the time of the tour has already passed.  
+Hide the entire booking section on the tour detail if the current user, had already booked the tour. Also prevent duplicate bookings on the model.  
+Implement 'like tour' functionality with favorite tour page.
+Implement My Reviews page, which already has a link right now, and on that page the user could then see and maybe also edit and delete all of their own reviews.  
+For administrators, implement all the 'Manage' pages, where they can perform all the CRUD operations on all the resources.
 
-*/
-
-# 0f0
-
-/*
-? ------------------------- ?
-! ------------------------- !
-
-* ------------------------- *
-! NEXT SECTION #14
-* SETTING UP GIT AND DEPLOYMENT
-*/
-/*
-* lecture 218
-* Setting Up Git and GitHub
-So, the Heroku platform, where we're gonna deploy our project,works very closely with git,  And so in this lecture, we're gonna install and setup git on our computer and also open an account at github.com.
-
-? Whay actually git is
-well, git is a version control software, so a software that runs on your computer and which basically allows you to save snapshots of your code over time. ---very baisc
-Each of the project we'll create a repository, and then in there we'll create commits and diff branches.
-
-let's now go ahead and create an account on github.com
-github is a platform where we can host our own git repositories for free in order to share it with other developers, or just to keep it secure for yourself.  
-*/
-
-/*
-
-* lecture 219
-* Git Fundamentals
-In our local project folder create a new repository
-
-* Create new git repo
-? git init
-In order to create new repo we need to navigate to that project folder, and then in there we write git init, so right now we have a repository with a branc name called master
-
-* Create a special file called gitignore
-all that file that shouldn't be in the repo
-IN .GITIGNORE FILE
-node_modules/
-*.env (All .env file)
-
-? git status
-all the folders that not yet commited to our repo
-
-* How we commit files to repo, that's a two step process
-Add that file to so-called staging area, only then we commit all the files.
-
-? git add -A
-To add(stage) all the files
-
-? git commit -m "commit message"
-
-Now we have a local repository with all of our codes committed to it. In the next video lets actually puch this brach on github. Hosted on the githaub account that we just created.
-
-*/
-
-/*
-
-* lecture 220
-* Pushing to GitHub
-Pussing to a remote branch
-Create new repo on github
-
-the goal is to basically push all our local code into this remore repo that we just created. In order to be able to do that, we need to let our local repository know about this remote repo that we created. so we have to kind of connect them, that's exactly what is said here. "…or push an existing repository from the command line"
-git remote add origin <https://github.com/muhammad-ahmad66/natours.git> paste this to terminal
-What this going to do? It will add a remote brach/repo, and this romote repo is going to be called origin and it's located at this url.
-Now these two repos are connected. At this point we're ready to do git push
-? git push nameOfRemoteBranch nameOfLocalBranch
-name of remote branch is origin here, name of local branch is master. So,
-? git push origin master
-
-By the way the oposite operation of push is pull operation. So imagine youre working on two different computers and want to start to work on one computer and then continue on the other one. And so to do that pust the code on one computer onto github and then on the other one simply pull it.
-? git pull origin master
-
-* Now we'll create a readme file
-That's a very standard file that every single repository should have.  
-The standard name is readme.md, md stands for mark down
-use # for main title
-That's It,
-
-*/
+---
